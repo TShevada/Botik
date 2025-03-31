@@ -10,15 +10,19 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from collections import defaultdict
 from aiohttp import web
-# --- Configuration ---
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-YOUR_TELEGRAM_ID = int(os.getenv("ADMIN_ID", "0"))  # Ваш ID
-PORT = int(os.getenv("PORT", 10000))
+
+# ===== HARDCODED CONFIGURATION (REPLACE THESE VALUES) =====
+TOKEN = "7883966462:AAG2udLydnyXDibLWyw8WrlVntzUB-KMXfE"  # Get from @BotFather
+YOUR_TELEGRAM_ID = 1234567890  # Your personal Telegram ID (get from @userinfobot)
+PAYMENT_CARD = "1234 5678 9012 3456"  # Your payment card number
+# =========================================================
+
+# Constants
 PHOTOS_DIR = "payment_screenshots"
 WELCOME_BANNER = "welcome_banner.jpg"
-PAYMENT_CARD = "4169 7388 9268 3164"
+PORT = 10000
 
-# --- Setup ---
+# Setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 os.makedirs(PHOTOS_DIR, exist_ok=True)
@@ -26,19 +30,19 @@ os.makedirs(PHOTOS_DIR, exist_ok=True)
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
 dp = Dispatcher()
 
-# --- Storage ---
+# Storage
 user_lang = {}
 user_data = {}
 save_counter = defaultdict(int)
 admin_pending_actions = {}
 pending_approvals = {}
 
-# --- Ticket Prices ---
+# Ticket Prices
 TICKET_TYPES = {
     "standard": {
-        "ru": {"name": "Стандарт", "price": "20 манат", "desc": "включает welcome cocktails (безалкогольные)"},
-        "az": {"name": "Standart", "price": "20 manat", "desc": "welcome cocktails (alkogolsuz) daxildir"},
-        "en": {"name": "Standard", "price": "20 AZN", "desc": "includes welcome cocktails (non-alcohol)"}
+        "ru": {"name": "Стандарт", "price": "20 манат", "desc": "включает welcome cocktails"},
+        "az": {"name": "Standart", "price": "20 manat", "desc": "welcome cocktails daxildir"},
+        "en": {"name": "Standard", "price": "20 AZN", "desc": "includes welcome cocktails"}
     },
     "vip": {
         "ru": {"name": "VIP", "price": "40 манат", "desc": "можно потратить 20 манат на еду и напитки"},
@@ -52,7 +56,7 @@ TICKET_TYPES = {
     }
 }
 
-# --- Helper Functions ---
+# Helper Functions
 def is_admin(user_id: int) -> bool:
     return user_id == YOUR_TELEGRAM_ID
 
@@ -86,7 +90,7 @@ def get_menu_keyboard(lang):
             ],
             resize_keyboard=True
         )
-    else:  # English
+    else:
         return ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="🎫 Tickets")],
@@ -118,7 +122,7 @@ def get_ticket_type_keyboard(lang):
             ],
             resize_keyboard=True
         )
-    else:  # English
+    else:
         return ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="Standard (20 AZN)")],
@@ -225,18 +229,24 @@ def save_to_excel(user_id, name, phone, ticket_type, ticket_price, photo_path):
 
 async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ticket_price: str):
     try:
+        if not YOUR_TELEGRAM_ID:
+            logger.error("Admin ID not set")
+            return
+            
         msg = await bot.send_message(
-            YOUR_TELEGRAM_ID,
-            f"🆕 *Новая заявка на билет*\n\n"
-            f"👤 ID: {user_id}\n"
-            f"📛 Имя: {name}\n"
-            f"📱 Телефон: `{phone}`\n"
-            f"🎫 Тип: {ticket_type}\n"
-            f"💵 Сумма: {ticket_price}\n"
-            f"🕒 Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
-            f"Ответьте на это сообщение командой:\n"
-            f"/accept - подтвердить\n"
-            f"/reject [причина] - отклонить",
+            chat_id=YOUR_TELEGRAM_ID,
+            text=(
+                f"🆕 *Новая заявка на билет*\n\n"
+                f"👤 ID: {user_id}\n"
+                f"📛 Имя: {name}\n"
+                f"📱 Телефон: `{phone}`\n"
+                f"🎫 Тип: {ticket_type}\n"
+                f"💵 Сумма: {ticket_price}\n"
+                f"🕒 Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                f"Ответьте на это сообщение командой:\n"
+                f"/accept - подтвердить\n"
+                f"/reject [причина] - отклонить"
+            ),
             parse_mode="Markdown"
         )
         
@@ -248,7 +258,7 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ti
     except Exception as e:
         logger.error(f"Failed to notify admin: {e}")
 
-# --- Handlers ---
+# Handlers
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
     try:
@@ -531,7 +541,6 @@ async def handle_payment(message: types.Message):
         }[lang]
         await message.answer(prompt)
 
-# --- Admin Handlers ---
 @dp.message(Command("admin"))
 async def admin_command(message: types.Message):
     if not is_admin(message.from_user.id):
@@ -665,7 +674,6 @@ async def reject_request(message: types.Message):
         logger.error(f"Reject error: {e}")
         await message.answer("❌ Ошибка отклонения")
 
-# --- Unhandled Messages ---
 @dp.message()
 async def handle_unmatched_messages(message: types.Message):
     if message.from_user.id == YOUR_TELEGRAM_ID:
@@ -679,16 +687,13 @@ async def handle_unmatched_messages(message: types.Message):
         }[lang]
         await message.answer(response, reply_markup=get_menu_keyboard(lang))
 
-# --- HTTP Server for Render ---
+async def run_bot():
+    await dp.start_polling(bot)
+
 async def http_handler(request):
     return web.Response(text="🤖 Бот работает в режиме polling!")
 
-async def run_bot():
-    """Запуск бота в режиме polling"""
-    await dp.start_polling(bot)
-
 async def main():
-    """Основная функция запуска"""
     # Запускаем бота в фоне
     bot_task = asyncio.create_task(run_bot())
 
@@ -701,7 +706,7 @@ async def main():
     await site.start()
 
     logger.info(f"🚀 Бот запущен на порту {PORT}")
-    await asyncio.Event().wait()  # Бесконечное ожидание
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
     try:
