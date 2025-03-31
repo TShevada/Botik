@@ -8,8 +8,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from collections import defaultdict
 
-# Настройки
-import os
+
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID"))
