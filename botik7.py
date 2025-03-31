@@ -10,10 +10,9 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from collections import defaultdict
 from aiohttp import web
-
 # --- Configuration ---
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-YOUR_TELEGRAM_ID = int(os.getenv("ADMIN_ID")) if os.getenv("ADMIN_ID") else None
+YOUR_TELEGRAM_ID = int(os.getenv("ADMIN_ID", "0"))  # Ваш ID
 PORT = int(os.getenv("PORT", 10000))
 PHOTOS_DIR = "payment_screenshots"
 WELCOME_BANNER = "welcome_banner.jpg"
