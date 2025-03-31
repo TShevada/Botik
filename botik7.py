@@ -40,20 +40,66 @@ pending_approvals = {}
 # Ticket Prices
 TICKET_TYPES = {
     "standard": {
-        "ru": {"name": "Стандарт", "price": "20 манат", "desc": "включает welcome cocktails"},
-        "az": {"name": "Standart", "price": "20 manat", "desc": "welcome cocktails daxildir"},
-        "en": {"name": "Standard", "price": "20 AZN", "desc": "includes welcome cocktails"}
-    },
-    "vip": {
-        "ru": {"name": "VIP", "price": "40 манат", "desc": "можно потратить 20 манат на еду и напитки"},
-        "az": {"name": "VIP", "price": "40 manat", "desc": "20 manatı yemək və içkilərə xərcləmək olar"},
-        "en": {"name": "VIP", "price": "40 AZN", "desc": "20 AZN can be spent on food and drinks"}
+        "ru": {
+            "name": "Стандарт",
+            "price": "20 манат",
+            "desc": "Welcome Cocktails, Fan Zone",
+            "features": ["Welcome Cocktails", "Fan Zone"]
+        },
+        "az": {
+            "name": "Standart",
+            "price": "20 manat",
+            "desc": "Welcome Cocktails, Fan Zone",
+            "features": ["Welcome Cocktails", "Fan Zone"]
+        },
+        "en": {
+            "name": "Standard",
+            "price": "20 AZN",
+            "desc": "Welcome Cocktails, Fan Zone",
+            "features": ["Welcome Cocktails", "Fan Zone"]
+        }
     },
     "exclusive": {
-        "ru": {"name": "Эксклюзив", "price": "60 манат", "desc": "можно потратить 30 манат на еду и напитки"},
-        "az": {"name": "Eksklüziv", "price": "60 manat", "desc": "30 manatı yemək və içkilərə xərcləmək olar"},
-        "en": {"name": "Exclusive", "price": "60 AZN", "desc": "30 AZN can be spent on food and drinks"}
+        "ru": {
+            "name": "Эксклюзив",
+            "price": "60 манат",
+            "desc": "Behind the DJ booth, Seating available, Welcome Cocktails, 10 limited space",
+            "features": ["Behind the DJ booth", "Seating available", "Welcome Cocktails", "10 limited space"]
+        },
+        "az": {
+            "name": "Eksklüziv",
+            "price": "60 manat",
+            "desc": "Behind the DJ booth, Seating available, Welcome Cocktails, 10 limited space",
+            "features": ["Behind the DJ booth", "Seating available", "Welcome Cocktails", "10 limited space"]
+        },
+        "en": {
+            "name": "Exclusive",
+            "price": "60 AZN",
+            "desc": "Behind the DJ booth, Seating available, Welcome Cocktails, 10 limited space",
+            "features": ["Behind the DJ booth", "Seating available", "Welcome Cocktails", "10 limited space"]
+        }
+    },
+    "vip": {
+        "ru": {
+            "name": "VIP",
+            "price": "40 манат",
+            "desc": "Seating available, Welcome Cocktails, 60 limited space",
+            "features": ["Seating available", "Welcome Cocktails", "60 limited space"]
+        },
+        "az": {
+            "name": "VIP",
+            "price": "40 manat",
+            "desc": "Seating available, Welcome Cocktails, 60 limited space",
+            "features": ["Seating available", "Welcome Cocktails", "60 limited space"]
+        },
+        "en": {
+            "name": "VIP",
+            "price": "40 AZN",
+            "desc": "Seating available, Welcome Cocktails, 60 limited space",
+            "features": ["Seating available", "Welcome Cocktails", "60 limited space"]
+        }
     }
+
 }
 
 # Helper Functions
