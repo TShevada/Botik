@@ -14,12 +14,6 @@ from collections import defaultdict
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID"))
 
-# Инициализация
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-bot = Bot(token=TOKEN, parse_mode=types.ParseMode.MARKDOWN)
-dp = Dispatcher(bot)
 
 # --- Configuration ---
 PHOTOS_DIR = "payment_screenshots"
@@ -31,9 +25,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 os.makedirs(PHOTOS_DIR, exist_ok=True)
 
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
-dp = Dispatcher()
 
+# Replace with:
+bot = Bot(token=TOKEN, parse_mode="Markdown")
+dp = Dispatcher()
 # --- Storage ---
 user_lang = {}
 user_data = {}
