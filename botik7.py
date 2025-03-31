@@ -3,16 +3,23 @@ import asyncio
 import openpyxl
 import os
 from datetime import datetime
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.enums import ParseMode
-from aiogram.client.default import DefaultBotProperties
+from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from collections import defaultdict
 
-# --- Configuration ---
+# Настройки
 TOKEN = "7883966462:AAG2udLydnyXDibLWyw8WrlVntzUB-KMXfE"
 YOUR_TELEGRAM_ID = 1291104906
+
+# Инициализация
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+bot = Bot(token=TOKEN, parse_mode=types.ParseMode.MARKDOWN)
+dp = Dispatcher(bot)
+
+# --- Configuration ---
 PHOTOS_DIR = "payment_screenshots"
 WELCOME_BANNER = "welcome_banner.jpg"
 PAYMENT_CARD = "4169 7388 9268 3164"
