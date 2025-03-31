@@ -9,8 +9,10 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from collections import defaultdict
 
 # Настройки
-TOKEN = "7883966462:AAG2udLydnyXDibLWyw8WrlVntzUB-KMXfE"
-YOUR_TELEGRAM_ID = 1291104906
+import os
+
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+YOUR_TELEGRAM_ID = int(os.getenv("YOUR_TELEGRAM_ID"))
 
 # Инициализация
 logging.basicConfig(level=logging.INFO)
