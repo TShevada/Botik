@@ -14,7 +14,7 @@ from aiohttp import web
 # --- Configuration ---
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 YOUR_TELEGRAM_ID = int(os.getenv("ADMIN_ID")) if os.getenv("ADMIN_ID") else None
-PORT = int(os.getenv("PORT", 10000))  # Для Render
+PORT = int(os.getenv("PORT", 10000))
 PHOTOS_DIR = "payment_screenshots"
 WELCOME_BANNER = "welcome_banner.jpg"
 PAYMENT_CARD = "4169 7388 9268 3164"
@@ -218,7 +218,79 @@ async def set_language(message: types.Message):
     
     await message.answer(confirmation, reply_markup=get_menu_keyboard(lang_map[message.text]))
 
-# ... (все остальные обработчики остаются без изменений)
+# Обработчик для кнопки "Ближайшие события"
+@dp.message(F.text.in_(["📅 Ближайшие события", "📅 Yaxın tədbirlər", "📅 Upcoming events"]))
+async def events_handler(message: types.Message):
+    lang = user_lang.get(message.from_user.id, "en")
+    events_info = {
+        "ru": "Текущий ивент: Afro-Party в Voodoo!\n"
+              "📅 Дата: 27 апреля 2025\n"
+              "🕒 Время: 18:00 - 00:00\n"
+              "📍 Место: Рестобар Voodoo, ТРЦ Наргиз Молл, 3 этаж",
+        "az": "Cari tədbir: Afro-Party Voodoo-da!\n"
+              "📅 Tarix: 27 Aprel 2025\n"
+              "🕒 Vaxt: 18:00 - 00:00\n"
+              "📍 Yer: Voodoo Restobar, Nargiz Mall, 3-cü mərtəbə",
+        "en": "Current event: Afro-Party at Voodoo!\n"
+              "📅 Date: April 27, 2025\n"
+              "🕒 Time: 6:00 PM - 12:00 AM\n"
+              "📍 Location: Voodoo Restobar, Nargiz Mall, 3rd floor"
+    }
+    await message.answer(events_info[lang])
+
+# Обработчик для кнопки "Контакты"
+@dp.message(F.text.in_(["📞 Контакты", "📞 Əlaqə", "📞 Contacts"]))
+async def contacts_handler(message: types.Message):
+    lang = user_lang.get(message.from_user.id, "en")
+    contact_info = {
+        "ru": "📞 Контакты:\nТелефон: +994 10 531 24 06",
+        "az": "📞 Əlaqə:\nTelefon: +994 10 531 24 06",
+        "en": "📞 Contacts:\nPhone: +994 10 531 24 06"
+    }[lang]
+    await message.answer(contact_info)
+
+# Обработчик для кнопки "Сменить язык"
+@dp.message(F.text.in_(["🌐 Сменить язык", "🌐 Dil dəyiş", "🌐 Change language"]))
+async def change_lang_handler(message: types.Message):
+    await message.answer(
+        "Выберите язык / Select language / Dil seçin:",
+        reply_markup=get_lang_keyboard()
+    )
+
+@dp.message(F.text.in_(["🎫 Билеты", "🎫 Biletlər", "🎫 Tickets"]))
+async def tickets_menu_handler(message: types.Message):
+    lang = user_lang.get(message.from_user.id, "en")
+    
+    tickets_info = {
+        "ru": "🎟 Доступные билеты:\n\n"
+              f"1. {TICKET_TYPES['standard']['ru']['name']} - {TICKET_TYPES['standard']['ru']['price']}\n"
+              f"   {TICKET_TYPES['standard']['ru']['desc']}\n\n"
+              f"2. {TICKET_TYPES['vip']['ru']['name']} - {TICKET_TYPES['vip']['ru']['price']}\n"
+              f"   {TICKET_TYPES['vip']['ru']['desc']}\n\n"
+              f"3. {TICKET_TYPES['exclusive']['ru']['name']} - {TICKET_TYPES['exclusive']['ru']['price']}\n"
+              f"   {TICKET_TYPES['exclusive']['ru']['desc']}\n\n"
+              "Выберите тип билета:",
+        "az": "🎟 Mövcud biletlər:\n\n"
+              f"1. {TICKET_TYPES['standard']['az']['name']} - {TICKET_TYPES['standard']['az']['price']}\n"
+              f"   {TICKET_TYPES['standard']['az']['desc']}\n\n"
+              f"2. {TICKET_TYPES['vip']['az']['name']} - {TICKET_TYPES['vip']['az']['price']}\n"
+              f"   {TICKET_TYPES['vip']['az']['desc']}\n\n"
+              f"3. {TICKET_TYPES['exclusive']['az']['name']} - {TICKET_TYPES['exclusive']['az']['price']}\n"
+              f"   {TICKET_TYPES['exclusive']['az']['desc']}\n\n"
+              "Bilet növünü seçin:",
+        "en": "🎟 Available tickets:\n\n"
+              f"1. {TICKET_TYPES['standard']['en']['name']} - {TICKET_TYPES['standard']['en']['price']}\n"
+              f"   {TICKET_TYPES['standard']['en']['desc']}\n\n"
+              f"2. {TICKET_TYPES['vip']['en']['name']} - {TICKET_TYPES['vip']['en']['price']}\n"
+              f"   {TICKET_TYPES['vip']['en']['desc']}\n\n"
+              f"3. {TICKET_TYPES['exclusive']['en']['name']} - {TICKET_TYPES['exclusive']['en']['price']}\n"
+              f"   {TICKET_TYPES['exclusive']['en']['desc']}\n\n"
+              "Select ticket type:"
+    }[lang]
+    
+    await message.answer(tickets_info, reply_markup=get_ticket_type_keyboard(lang))
+
+# ... (остальные обработчики остаются без изменений)
 
 # --- HTTP Server for Render ---
 async def http_handler(request):
