@@ -11,11 +11,11 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeybo
 from collections import defaultdict
 from aiohttp import web
 
-# ===== HARDCODED CONFIGURATION (REPLACE THESE VALUES) =====
-TOKEN = "7501232713:AAEQG8REnPf83FqVkVqus-ZnJBKDnSt9Qvo"  # Get from @BotFather
-YOUR_TELEGRAM_ID = 1291104906  # Your personal Telegram ID (get from @userinfobot)
-PAYMENT_CARD = "4169 7388 9268 3164"  # Your payment card number
-# =========================================================
+# ===== CONFIGURATION =====
+TOKEN = "7501232713:AAEQG8REnPf83FqVkVqus-ZnJBKDnSt9Qvo"
+YOUR_TELEGRAM_ID = 1291104906
+PAYMENT_CARD = "4169 7388 9268 3164"
+# ========================
 
 # Constants
 PHOTOS_DIR = "payment_screenshots"
@@ -478,7 +478,9 @@ async def ticket_type_handler(message: types.Message):
         "step": "name",
         "lang": lang,
         "ticket_type": ticket_type,
-        "ticket_price": TICKET_TYPES[ticket_type][lang]["price"]
+        "ticket_price": TICKET_TYPES[ticket_type][lang]["price"],
+        "name": None,
+        "phone": None
     }
     
     prompt = {
@@ -489,7 +491,391 @@ async def ticket_type_handler(message: types.Message):
     
     await message.answer(prompt, reply_markup=types.ReplyKeyboardRemove())
 
-# [Rest of the handlers remain the same as in your original code...]
+@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
+async def get_name(message: types.Message):
+    try:
+        if message.from_user.id not in user_data:
+            lang = user_lang.get(message.from_user.id, "en")
+            await message.answer("Пожалуйста, выберите тип билета сначала" if lang == "ru" else 
+                                "Zəhmət olmasa, əvvəlcə bilet növünü seçin" if lang == "az" else 
+                                "Please select ticket type first")
+            return
+
+        # Store the name and move to next step
+        user_data[message.from_user.id]["name"] = message.text
+        user_data[message.from_user.id]["step"] = "phone"
+        lang = user_data[message.from_user.id].get("lang", "en")
+        
+        prompt = {
+            "ru": "Теперь введите ваш номер телефона:",
+            "az": "İndi telefon nömrənizi daxil edin:",
+            "en": "Now please enter your phone number:"
+        }[lang]
+        
+        await message.answer(prompt)
+    except Exception as e:
+        logger.error(f"Error in get_name handler: {e}")
+        lang = user_lang.get(message.from_user.id, "en")
+        error_msg = {
+            "ru": "Произошла ошибка, пожалуйста, попробуйте снова",
+            "az": "Xəta baş verdi, zəhmət olmasa yenidən cəhd edin",
+            "en": "An error occurred, please try again"
+        }[lang]
+        await message.answer(error_msg, reply_markup=get_menu_keyboard(lang))
+        if message.from_user.id in user_data:
+            del user_data[message.from_user.id]
+
+@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "phone")
+async def get_phone(message: types.Message):
+    try:
+        if message.from_user.id not in user_data:
+            lang = user_lang.get(message.from_user.id, "en")
+            await message.answer("Пожалуйста, начните процесс заново" if lang == "ru" else 
+                                "Zəhmət olmasa, prosesi yenidən başladın" if lang == "az" else 
+                                "Please start the process again")
+            return
+
+        phone = message.text
+        # Basic phone number validation
+        if not phone.replace('+', '').isdigit() or len(phone.replace('+', '')) < 9:
+            lang = user_data[message.from_user.id].get("lang", "en")
+            error_msg = {
+                "ru": "Пожалуйста, введите корректный номер телефона",
+                "az": "Zəhmət olmasa, düzgün telefon nömrəsi daxil edin",
+                "en": "Please enter a valid phone number"
+            }[lang]
+            await message.answer(error_msg)
+            return
+        
+        user_data[message.from_user.id]["phone"] = phone
+        user_data[message.from_user.id]["step"] = "confirm"
+        lang = user_data[message.from_user.id].get("lang", "en")
+        
+        ticket_type = user_data[message.from_user.id]["ticket_type"]
+        ticket_info = TICKET_TYPES[ticket_type][lang]
+        
+        confirmation = {
+            "ru": f"Проверьте ваши данные:\n\n"
+                  f"🎟 Тип билета: {ticket_info['name']}\n"
+                  f"💳 Сумма: {ticket_info['price']}\n"
+                  f"👤 Имя: {user_data[message.from_user.id]['name']}\n"
+                  f"📱 Телефон: {phone}\n\n"
+                  f"Все верно?",
+            "az": f"Məlumatlarınızı yoxlayın:\n\n"
+                  f"🎟 Bilet növü: {ticket_info['name']}\n"
+                  f"💳 Məbləğ: {ticket_info['price']}\n"
+                  f"👤 Ad: {user_data[message.from_user.id]['name']}\n"
+                  f"📱 Telefon: {phone}\n\n"
+                  f"Hər şey düzgündür?",
+            "en": f"Please confirm your details:\n\n"
+                  f"🎟 Ticket type: {ticket_info['name']}\n"
+                  f"💳 Amount: {ticket_info['price']}\n"
+                  f"👤 Name: {user_data[message.from_user.id]['name']}\n"
+                  f"📱 Phone: {phone}\n\n"
+                  f"Is everything correct?"
+        }[lang]
+        
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="✅ Да" if lang == "ru" else "✅ Bəli" if lang == "az" else "✅ Yes")],
+                [KeyboardButton(text="❌ Нет" if lang == "ru" else "❌ Xeyr" if lang == "az" else "❌ No")]
+            ],
+            resize_keyboard=True
+        )
+        
+        await message.answer(confirmation, reply_markup=keyboard)
+    except Exception as e:
+        logger.error(f"Error in get_phone handler: {e}")
+        lang = user_lang.get(message.from_user.id, "en")
+        error_msg = {
+            "ru": "Произошла ошибка, пожалуйста, начните заново",
+            "az": "Xəta baş verdi, zəhmət olmasa yenidən başlayın",
+            "en": "An error occurred, please start over"
+        }[lang]
+        await message.answer(error_msg, reply_markup=get_menu_keyboard(lang))
+        if message.from_user.id in user_data:
+            del user_data[message.from_user.id]
+
+@dp.message(F.text.in_(["✅ Да", "✅ Bəli", "✅ Yes"]))
+async def confirm_purchase(message: types.Message):
+    if message.from_user.id not in user_data:
+        lang = user_lang.get(message.from_user.id, "en")
+        await message.answer("Пожалуйста, начните процесс заново" if lang == "ru" else 
+                            "Zəhmət olmasa, prosesi yenidən başladın" if lang == "az" else 
+                            "Please start the process again")
+        return
+    
+    lang = user_data[message.from_user.id].get("lang", "en")
+    user_data[message.from_user.id]["step"] = "payment"
+    
+    payment_info = {
+        "ru": f"Оплатите {user_data[message.from_user.id]['ticket_price']} на карту: `{PAYMENT_CARD}`\n"
+              "и отправьте скриншот оплаты.",
+        "az": f"{user_data[message.from_user.id]['ticket_price']} məbləğini kartla ödəyin: `{PAYMENT_CARD}`\n"
+              "və ödəniş skrinşotu göndərin.",
+        "en": f"Please pay {user_data[message.from_user.id]['ticket_price']} to card: `{PAYMENT_CARD}`\n"
+              "and send payment screenshot."
+    }[lang]
+    
+    await message.answer(payment_info, reply_markup=get_menu_keyboard(lang))
+
+@dp.message(F.text.in_(["❌ Нет", "❌ Xeyr", "❌ No"]))
+async def cancel_purchase(message: types.Message):
+    lang = user_lang.get(message.from_user.id, "en")
+    if message.from_user.id in user_data:
+        del user_data[message.from_user.id]
+    
+    msg = {
+        "ru": "Заказ отменен. Можете начать заново.",
+        "az": "Sifariş ləğv edildi. Yenidən başlaya bilərsiniz.",
+        "en": "Order canceled. You can start again."
+    }[lang]
+    
+    await message.answer(msg, reply_markup=get_menu_keyboard(lang))
+
+@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
+async def handle_payment(message: types.Message):
+    lang = user_data[message.from_user.id].get("lang", "en")
+    
+    if message.photo:
+        try:
+            photo = message.photo[-1]
+            file = await bot.get_file(photo.file_id)
+            path = f"{PHOTOS_DIR}/{message.from_user.id}_{photo.file_id}.jpg"
+            await bot.download_file(file.file_path, path)
+            
+            if save_to_excel(
+                message.from_user.id,
+                user_data[message.from_user.id]["name"],
+                user_data[message.from_user.id]["phone"],
+                user_data[message.from_user.id]["ticket_type"],
+                user_data[message.from_user.id]["ticket_price"],
+                path
+            ):
+                await notify_admin(
+                    message.from_user.id,
+                    user_data[message.from_user.id]["name"],
+                    user_data[message.from_user.id]["phone"],
+                    user_data[message.from_user.id]["ticket_type"],
+                    user_data[message.from_user.id]["ticket_price"]
+                )
+                
+                confirmation = {
+                    "ru": "Спасибо! Ваша заявка на рассмотрении.",
+                    "az": "Təşəkkürlər! Müraciətiniz nəzərdən keçirilir.",
+                    "en": "Thank you! Your application is under review."
+                }[lang]
+                
+                await message.answer(confirmation, reply_markup=get_menu_keyboard(lang))
+                del user_data[message.from_user.id]
+            
+        except Exception as e:
+            logger.error(f"Payment processing error: {e}")
+            error_msg = {
+                "ru": "Ошибка обработки платежа, попробуйте снова",
+                "az": "Ödəniş emalı xətası, yenidən cəhd edin",
+                "en": "Payment processing error, please try again"
+            }[lang]
+            await message.answer(error_msg)
+    else:
+        prompt = {
+            "ru": "Пожалуйста, отправьте скриншот оплаты.",
+            "az": "Zəhmət olmasa, ödəniş skrinşotu göndərin.",
+            "en": "Please send the payment screenshot."
+        }[lang]
+        await message.answer(prompt)
+
+@dp.message(Command("admin"))
+async def admin_command(message: types.Message):
+    if not is_admin(message.from_user.id):
+        await message.answer("⛔ Доступ запрещён!")
+        return
+        
+    await message.answer(
+        "🛠 *Панель администратора*",
+        reply_markup=get_admin_keyboard(),
+        parse_mode="Markdown"
+    )
+
+@dp.callback_query(F.data.startswith("admin_"))
+async def handle_admin_callbacks(callback: types.CallbackQuery):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("⛔ Доступ запрещён!")
+        return
+    
+    try:
+        action = callback.data.split('_')[1]
+        
+        if action == "stats":
+            report = await generate_stats_report()
+            await callback.message.edit_text(report, reply_markup=get_admin_keyboard())
+            
+        elif action == "last_orders":
+            orders = await get_last_orders()
+            await callback.message.edit_text(orders, reply_markup=get_admin_keyboard())
+            
+        elif action == "search":
+                       await callback.message.answer("Введите ID пользователя:")
+            admin_pending_actions[callback.from_user.id] = "waiting_for_id"
+            
+        elif action == "refresh":
+            await callback.message.edit_text(
+                "🛠 *Панель администратора*",
+                reply_markup=get_admin_keyboard(),
+                parse_mode="Markdown"
+            )
+            
+        await callback.answer()
+    except Exception as e:
+        logger.error(f"Admin callback error: {e}")
+        await callback.answer("⚠️ Произошла ошибка")
+
+@dp.message(lambda m: admin_pending_actions.get(m.from_user.id) == "waiting_for_id")
+async def handle_admin_search(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return
+        
+    try:
+        user_id = int(message.text)
+        wb = openpyxl.load_workbook("tickets.xlsx")
+        ws = wb.active
+        
+        found = None
+        for row in ws.iter_rows(values_only=True):
+            if row[0] == user_id:
+                found = row
+                break
+                
+        if not found:
+            await message.answer("❌ Заявка не найдена")
+        else:
+            # Translate ticket type for display
+            ticket_type = found[3]
+            if ticket_type == "vip_single":
+                ticket_type = "VIP Одиночный"
+            elif ticket_type == "vip_table":
+                ticket_type = "VIP Столик"
+            elif ticket_type == "standard":
+                ticket_type = "Стандарт"
+            elif ticket_type == "exclusive":
+                ticket_type = "Эксклюзив"
+                
+            report = (
+                f"🔍 *Найдена заявка:*\n\n"
+                f"👤 *{found[1]}*\n"
+                f"📞 `{found[2]}`\n"
+                f"🎟 {ticket_type} ({found[4]})\n"
+                f"📸 [Фото]({found[5]})\n"
+                f"🕒 {found[6]}"
+            )
+            await message.answer(report, parse_mode="Markdown")
+            
+    except ValueError:
+        await message.answer("❌ Введите числовой ID")
+    except Exception as e:
+        logger.error(f"Search error: {e}")
+        await message.answer("⚠️ Ошибка поиска")
+    finally:
+        admin_pending_actions.pop(message.from_user.id, None)
+
+@dp.message(Command("accept"))
+async def accept_request(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return
+        
+    if not message.reply_to_message:
+        await message.answer("ℹ️ Ответьте на сообщение с заявкой для подтверждения")
+        return
+        
+    try:
+        text = message.reply_to_message.text
+        user_id = int(text.split("ID:")[1].split("\n")[0].strip())
+        
+        if user_id in pending_approvals:
+            pending_approvals[user_id]["approved"] = True
+            await message.answer(f"✅ Заявка {user_id} подтверждена")
+            
+            # Send approval notification to user
+            lang = user_lang.get(user_id, "en")
+            approval_msg = {
+                "ru": "🎉 Ваша заявка подтверждена! Билет активен.",
+                "az": "🎉 Müraciətiniz təsdiqləndi! Bilet aktivdir.",
+                "en": "🎉 Your application has been approved! Ticket is active."
+            }[lang]
+            
+            await bot.send_message(user_id, approval_msg)
+            
+            # Remove from pending
+            del pending_approvals[user_id]
+        else:
+            await message.answer("⚠️ Заявка не найдена в ожидающих")
+    except Exception as e:
+        logger.error(f"Accept error: {e}")
+        await message.answer("❌ Ошибка подтверждения")
+
+@dp.message(Command("reject"))
+async def reject_request(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return
+        
+    if not message.reply_to_message:
+        await message.answer("ℹ️ Ответьте на сообщение с заявкой для отклонения")
+        return
+        
+    try:
+        text = message.reply_to_message.text
+        user_id = int(text.split("ID:")[1].split("\n")[0].strip())
+        reason = message.text.split("/reject")[1].strip() or "не указана"
+        
+        if user_id in pending_approvals:
+            pending_approvals[user_id]["approved"] = False
+            await message.answer(f"❌ Заявка {user_id} отклонена")
+            
+            # Send rejection notification to user
+            lang = user_lang.get(user_id, "en")
+            rejection_msg = {
+                "ru": f"⚠️ Ваша заявка отклонена. Причина: {reason}",
+                "az": f"⚠️ Müraciətiniz rədd edildi. Səbəb: {reason}",
+                "en": f"⚠️ Your application was rejected. Reason: {reason}"
+            }[lang]
+            
+            await bot.send_message(user_id, rejection_msg)
+            
+            # Remove from pending
+            del pending_approvals[user_id]
+        else:
+            await message.answer("⚠️ Заявка не найдена в ожидающих")
+    except Exception as e:
+        logger.error(f"Reject error: {e}")
+        await message.answer("❌ Ошибка отклонения")
+
+@dp.message()
+async def handle_unmatched_messages(message: types.Message):
+    if message.from_user.id == YOUR_TELEGRAM_ID:
+        await message.answer("ℹ️ Используйте /admin для управления ботом")
+    else:
+        lang = user_lang.get(message.from_user.id, "en")
+        
+        # Check if user is in the middle of a process
+        if message.from_user.id in user_data:
+            current_step = user_data[message.from_user.id].get("step")
+            if current_step == "name":
+                await get_name(message)
+                return
+            elif current_step == "phone":
+                await get_phone(message)
+                return
+            elif current_step == "payment":
+                await handle_payment(message)
+                return
+        
+        # Default response
+        response = {
+            "ru": "Пожалуйста, используйте кнопки меню",
+            "az": "Zəhmət olmasa menyu düymələrindən istifadə edin",
+            "en": "Please use the menu buttons"
+        }[lang]
+        await message.answer(response, reply_markup=get_menu_keyboard(lang))
 
 async def run_bot():
     await dp.start_polling(bot)
@@ -498,10 +884,10 @@ async def http_handler(request):
     return web.Response(text="🤖 Бот работает в режиме polling!")
 
 async def main():
-    # Запускаем бота в фоне
+    # Start bot in background
     bot_task = asyncio.create_task(run_bot())
 
-    # Настраиваем HTTP-сервер для Render
+    # Configure HTTP server for Render
     app = web.Application()
     app.router.add_get("/", http_handler)
     runner = web.AppRunner(app)
