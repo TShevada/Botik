@@ -14,7 +14,7 @@ from aiohttp import web
 # ===== HARDCODED CONFIGURATION (REPLACE THESE VALUES) =====
 TOKEN = "7501232713:AAEQG8REnPf83FqVkVqus-ZnJBKDnSt9Qvo"  # Get from @BotFather
 YOUR_TELEGRAM_ID = 1291104906  # Your personal Telegram ID (get from @userinfobot)
-PAYMENT_CARD = "1234 5678 9012 3456"  # Your payment card number
+PAYMENT_CARD = "4169 7388 9268 3164"  # Your payment card number
 # =========================================================
 
 # Constants
