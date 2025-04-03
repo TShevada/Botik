@@ -13,9 +13,9 @@ from aiohttp import web
 from collections import defaultdict
 
 # --- Configuration ---
-TOKEN = os.getenv("TELEGRAM_TOKEN")  # Set in Render environment
-ADMIN_ID = 1291104906  # Your Telegram ID
-PORT = int(os.getenv("PORT", "10001"))  # Try 10001-10025
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+ADMIN_ID = 1291104906
+PORT = int(os.getenv("PORT", "10001"))
 PAYMENT_CARD = "4169 7388 9268 3164"
 
 # --- Setup ---
@@ -167,7 +167,7 @@ TICKET_TYPES = {
                 "• 4 nəfərlik ayrıca masa\n"
                 "• Bütün şirkət üçün qarşılama kokteylləri\n"
                 "• Yerlərin sayı məhduddur\n\n"
-                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
+                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonра geri qaytarılmır"
             )
         },
         "ru": {
@@ -200,7 +200,7 @@ TICKET_TYPES = {
                 "• 4 nəfərlik ayrıca masa\n"
                 "• Bütün şirkət üçün qarşılama kokteylləri\n"
                 "• Yerlərin sayı məhduddur\n\n"
-                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
+                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonра geri qaytarılmır"
             )
         },
         "ru": {
@@ -243,7 +243,7 @@ async def run_web_server():
         logger.info(f"🌐 Health check running on port {PORT}")
     except OSError as e:
         logger.error(f"Port {PORT} unavailable, trying fallback...")
-        site = web.TCPSite(runner, "0.0.0.0", 10002)  # Fallback port
+        site = web.TCPSite(runner, "0.0.0.0", 10002)
         await site.start()
 
 # --- Handlers ---
@@ -313,7 +313,6 @@ async def tickets_menu_handler(message: types.Message):
     )
 
 @dp.message(F.text)
-@dp.message(F.text)
 async def ticket_type_handler(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     
@@ -331,7 +330,12 @@ async def ticket_type_handler(message: types.Message):
             return
         await message.answer("Неверный тип билета" if lang == "ru" else "Yanlış bilet növü" if lang == "az" else "Invalid ticket type")
         return
-     user_data[message.from_user.id] = {
+    
+    # Send full ticket info exactly as requested
+    await message.answer(TICKET_TYPES[ticket_type][lang]["full_info"])
+    
+    # Store user data for purchase flow
+    user_data[message.from_user.id] = {
         "step": "name",
         "lang": lang,
         "ticket_type": ticket_type,
@@ -455,8 +459,6 @@ async def handle_payment_photo(message: types.Message):
         photo = message.photo[-1]
         user_id = message.from_user.id
         data = user_data[user_id]
-        
-        # Generate ticket ID
         ticket_id = generate_ticket_id()
         
         # Store the pending approval
@@ -468,7 +470,8 @@ async def handle_payment_photo(message: types.Message):
             "photo_id": photo.file_id,
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "approved": None,
-            "ticket_id": ticket_id
+            "ticket_id": ticket_id,
+            "lang": lang
         }
         
         # Notify admin
@@ -571,109 +574,8 @@ async def handle_admin_callbacks(callback: types.CallbackQuery):
         logger.error(f"Admin callback error: {e}")
         await callback.answer("⚠️ Произошла ошибка")
 
-@dp.message(lambda m: admin_pending_actions.get(m.from_user.id) == "waiting_for_id")
-async def handle_admin_search(message: types.Message):
-    if not is_admin(message.from_user.id):
-        return
-        
-    try:
-        user_id = int(message.text)
-        data = pending_approvals.get(user_id)
-        
-        if not data:
-            await message.answer("❌ Заявка не найдена")
-        else:
-            report = (
-                f"🔍 *Найдена заявка:*\n\n"
-                f"🎫 *Номер билета:* {data.get('ticket_id', 'N/A')}\n"
-                f"👤 *{data['name']}*\n"
-                f"📞 `{data['phone']}`\n"
-                f"🎟 {data['ticket_type']} ({data['ticket_price']})\n"
-                f"🕒 {data['date']}\n\n"
-                f"Ответьте на это сообщение командой:\n"
-                f"/accept - подтвердить\n"
-                f"/reject [причина] - отклонить"
-            )
-            await message.answer(report, parse_mode="Markdown")
-            
-    except ValueError:
-        await message.answer("❌ Введите числовой ID")
-    finally:
-        admin_pending_actions.pop(message.from_user.id, None)
-
-@dp.message(Command("accept"))
-async def accept_request(message: types.Message):
-    if not is_admin(message.from_user.id):
-        return
-        
-    if not message.reply_to_message:
-        await message.answer("ℹ️ Ответьте на сообщение с заявкой для подтверждения")
-        return
-        
-    try:
-        text = message.reply_to_message.text
-        user_id = int(text.split("ID:")[1].split("\n")[0].strip())
-        
-        if user_id in pending_approvals:
-            # Move to approved tickets
-            approved_tickets[user_id] = pending_approvals[user_id]
-            approved_tickets[user_id]["approved"] = True
-            ticket_id = approved_tickets[user_id].get("ticket_id", "N/A")
-            del pending_approvals[user_id]
-            
-            await message.answer(f"✅ Заявка {user_id} подтверждена (Номер билета: {ticket_id})")
-            
-            lang = approved_tickets[user_id].get("lang", "en")
-            confirmation = {
-                "ru": f"🎉 Ваша заявка подтверждена! Билет активен.\n\nВаш номер билета: {ticket_id}",
-                "az": f"🎉 Müraciətiniz təsdiqləndi! Bilet aktivdir.\n\nBilet nömrəniz: {ticket_id}",
-                "en": f"🎉 Your application has been approved! Ticket is active.\n\nYour ticket number: {ticket_id}"
-            }[lang]
-            
-            await bot.send_message(user_id, confirmation)
-        else:
-            await message.answer("⚠️ Заявка не найдена в ожидающих")
-    except Exception as e:
-        logger.error(f"Accept error: {e}")
-        await message.answer("❌ Ошибка подтверждения")
-
-@dp.message(Command("reject"))
-async def reject_request(message: types.Message):
-    if not is_admin(message.from_user.id):
-        return
-        
-    if not message.reply_to_message:
-        await message.answer("ℹ️ Ответьте на сообщение с заявкой для отклонения")
-        return
-        
-    try:
-        text = message.reply_to_message.text
-        user_id = int(text.split("ID:")[1].split("\n")[0].strip())
-        reason = message.text.split("/reject")[1].strip() if len(message.text.split("/reject")) > 1 else "не указана"
-        
-        if user_id in pending_approvals:
-            lang = pending_approvals[user_id].get("lang", "en")
-            ticket_id = pending_approvals[user_id].get("ticket_id", "N/A")
-            
-            await message.answer(f"❌ Заявка {user_id} отклонена (Номер билета: {ticket_id})")
-            
-            rejection_msg = {
-                "ru": f"⚠️ Ваша заявка отклонена. Причина: {reason}\n\nНомер билета: {ticket_id}",
-                "az": f"⚠️ Müraciətiniz rədd edildi. Səbəb: {reason}\n\nBilet nömrəniz: {ticket_id}",
-                "en": f"⚠️ Your application has been rejected. Reason: {reason}\n\nTicket number: {ticket_id}"
-            }[lang]
-            
-            await bot.send_message(user_id, rejection_msg)
-            del pending_approvals[user_id]
-        else:
-            await message.answer("⚠️ Заявка не найдена в ожидающих")
-    except Exception as e:
-        logger.error(f"Reject error: {e}")
-        await message.answer("❌ Ошибка отклонения")
-
 async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ticket_price: str, photo_id: str, ticket_id: str):
     try:
-        # Send photo first
         await bot.send_photo(
             ADMIN_ID,
             photo_id,
@@ -695,27 +597,49 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ti
     except Exception as e:
         logger.error(f"Failed to notify admin: {e}")
 
-@dp.message()
-async def handle_unmatched_messages(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
-        await message.answer("ℹ️ Используйте /admin для управления ботом")
-    else:
-        lang = user_lang.get(message.from_user.id, "en")
-        response = {
-            "ru": "Пожалуйста, используйте кнопки меню",
-            "az": "Zəhmət olmasa menyu düymələrindən istifadə edin",
-            "en": "Please use the menu buttons"
-        }[lang]
-        await message.answer(response, reply_markup=get_menu_keyboard(lang))
-
-# --- Main ---
+# --- Main with permanent fixes ---
 async def main():
-    await run_web_server()
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+    try:
+        # Remove any existing webhook and clear updates
+        await bot.delete_webhook(drop_pending_updates=True)
+        
+        # Start web server
+        await run_web_server()
+        
+        # Start polling with permanent error handling
+        while True:
+            try:
+                await dp.start_polling(bot)
+                break  # Exit if polling stops normally
+            except Exception as e:
+                logger.error(f"Polling error: {e}")
+                await asyncio.sleep(5)  # Wait before retrying
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+    finally:
+        await bot.session.close()
 
 if __name__ == "__main__":
     if not TOKEN:
         raise ValueError("❌ TELEGRAM_TOKEN not set in environment variables!")
-    logging.info("Starting bot...")
-    asyncio.run(main())
+    
+    # Configure logging permanently
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler('bot.log')
+        ]
+    )
+    
+    logger.info("Starting bot with permanent fixes...")
+    
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user")
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+        # Attempt to restart
+        asyncio.run(main())
