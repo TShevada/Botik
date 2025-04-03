@@ -496,21 +496,29 @@ async def show_approved(message: types.Message):
     
     await message.answer(text)
 
-@dp.message(Command(commands_startswith=["approve_", "reject_"]))
+# Replace the problematic handler with this:
+
+@dp.message(Command(commands=["approve", "reject"]))
 async def handle_admin_approval(message: types.Message):
     if not is_admin(message.from_user.id):
         return
     
     try:
-        command = message.text.split('_')[0]
-        user_id = int(message.text.split('_')[1].split()[0])
+        # Extract command and user_id from text like "/approve_12345" or "/reject_12345 reason"
+        command_parts = message.text.split('_')
+        if len(command_parts) < 2:
+            await message.answer("⚠️ Неверный формат команды. Используйте /approve_12345 или /reject_12345 причина")
+            return
+            
+        command = command_parts[0][1:]  # Remove leading slash
+        user_id = int(command_parts[1].split()[0])  # Get user_id before any space
         data = pending_approvals.get(user_id)
         
         if not data:
             await message.answer("⚠️ Заявка не найдена")
             return
             
-        if command == "/approve":
+        if command == "approve":
             approved_tickets[user_id].append({
                 "ticket_id": data["ticket_id"],
                 "ticket_type": data["ticket_type"],
@@ -538,7 +546,7 @@ async def handle_admin_approval(message: types.Message):
             
             await message.answer(f"✅ Заявка #{data['ticket_id']} подтверждена")
             
-        elif command == "/reject":
+        elif command == "reject":
             reason = message.text.split(maxsplit=2)[2] if len(message.text.split()) > 2 else (
                 "Причина не указана" if data["lang"] == "ru" else
                 "Səbəb göstərilməyib" if data["lang"] == "az" else
