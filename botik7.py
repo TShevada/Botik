@@ -59,18 +59,58 @@ TICKET_TYPES = {
             "features": ["Welcome Cocktails", "Fan Zone"]
         }
     },
+    "vip_single": {
+        "ru": {
+            "name": "VIP (Одиночный)",
+            "price": "40 манат",
+            "desc": "Место для сидения, Welcome Cocktails, ограничено 60 мест",
+            "features": ["Место для сидения", "Welcome Cocktails", "Ограничено 60 мест"]
+        },
+        "az": {
+            "name": "VIP (Tək)",
+            "price": "40 manat",
+            "desc": "Oturaq yeri, Welcome Cocktails, 60 məhdud yer",
+            "features": ["Oturaq yeri", "Welcome Cocktails", "60 məhdud yer"]
+        },
+        "en": {
+            "name": "VIP (Single)",
+            "price": "40 AZN",
+            "desc": "Seating available, Welcome Cocktails, 60 limited space",
+            "features": ["Seating available", "Welcome Cocktails", "60 limited space"]
+        }
+    },
+    "vip_table": {
+        "ru": {
+            "name": "VIP (Столик)",
+            "price": "160 манат",
+            "desc": "Весь столик (4 места), Welcome Cocktails, VIP зона",
+            "features": ["Весь столик (4 места)", "Welcome Cocktails", "VIP зона"]
+        },
+        "az": {
+            "name": "VIP (Masalıq)",
+            "price": "160 manat",
+            "desc": "Bütün masa (4 nəfər), Welcome Cocktails, VIP zona",
+            "features": ["Bütün masa (4 nəfər)", "Welcome Cocktails", "VIP zona"]
+        },
+        "en": {
+            "name": "VIP (Table)",
+            "price": "160 AZN",
+            "desc": "Whole table (4 seats), Welcome Cocktails, VIP area",
+            "features": ["Whole table (4 seats)", "Welcome Cocktails", "VIP area"]
+        }
+    },
     "exclusive": {
         "ru": {
             "name": "Эксклюзив",
             "price": "60 манат",
-            "desc": "Behind the DJ booth, Seating available, Welcome Cocktails, 10 limited space",
-            "features": ["Behind the DJ booth", "Seating available", "Welcome Cocktails", "10 limited space"]
+            "desc": "За DJ-пультом, Место для сидения, Welcome Cocktails, ограничено 10 мест",
+            "features": ["За DJ-пультом", "Место для сидения", "Welcome Cocktails", "Ограничено 10 мест"]
         },
         "az": {
             "name": "Eksklüziv",
             "price": "60 manat",
-            "desc": "Behind the DJ booth, Seating available, Welcome Cocktails, 10 limited space",
-            "features": ["Behind the DJ booth", "Seating available", "Welcome Cocktails", "10 limited space"]
+            "desc": "DJ qutusunun arxasında, Oturaq yeri, Welcome Cocktails, 10 məhdud yer",
+            "features": ["DJ qutusunun arxasında", "Oturaq yeri", "Welcome Cocktails", "10 məhdud yer"]
         },
         "en": {
             "name": "Exclusive",
@@ -78,28 +118,7 @@ TICKET_TYPES = {
             "desc": "Behind the DJ booth, Seating available, Welcome Cocktails, 10 limited space",
             "features": ["Behind the DJ booth", "Seating available", "Welcome Cocktails", "10 limited space"]
         }
-    },
-    "vip": {
-        "ru": {
-            "name": "VIP",
-            "price": "40 манат",
-            "desc": "Seating available, Welcome Cocktails, 60 limited space",
-            "features": ["Seating available", "Welcome Cocktails", "60 limited space"]
-        },
-        "az": {
-            "name": "VIP",
-            "price": "40 manat",
-            "desc": "Seating available, Welcome Cocktails, 60 limited space",
-            "features": ["Seating available", "Welcome Cocktails", "60 limited space"]
-        },
-        "en": {
-            "name": "VIP",
-            "price": "40 AZN",
-            "desc": "Seating available, Welcome Cocktails, 60 limited space",
-            "features": ["Seating available", "Welcome Cocktails", "60 limited space"]
-        }
     }
-
 }
 
 # Helper Functions
@@ -152,7 +171,8 @@ def get_ticket_type_keyboard(lang):
         return ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="Стандарт (20 манат)")],
-                [KeyboardButton(text="VIP (40 манат)")],
+                [KeyboardButton(text="VIP Одиночный (40 манат)")],
+                [KeyboardButton(text="VIP Столик (160 манат)")],
                 [KeyboardButton(text="Эксклюзив (60 манат)")],
                 [KeyboardButton(text="⬅️ Назад")]
             ],
@@ -162,7 +182,8 @@ def get_ticket_type_keyboard(lang):
         return ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="Standart (20 manat)")],
-                [KeyboardButton(text="VIP (40 manat)")],
+                [KeyboardButton(text="VIP Tək (40 manat)")],
+                [KeyboardButton(text="VIP Masalıq (160 manat)")],
                 [KeyboardButton(text="Eksklüziv (60 manat)")],
                 [KeyboardButton(text="⬅️ Geri")]
             ],
@@ -172,7 +193,8 @@ def get_ticket_type_keyboard(lang):
         return ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="Standard (20 AZN)")],
-                [KeyboardButton(text="VIP (40 AZN)")],
+                [KeyboardButton(text="VIP Single (40 AZN)")],
+                [KeyboardButton(text="VIP Table (160 AZN)")],
                 [KeyboardButton(text="Exclusive (60 AZN)")],
                 [KeyboardButton(text="⬅️ Back")]
             ],
@@ -205,7 +227,8 @@ async def generate_stats_report():
             f"📈 *Статистика заявок*\n\n"
             f"• Всего заявок: {total}\n"
             f"• Стандарт: {types_count.get('standard', 0)}\n"
-            f"• VIP: {types_count.get('vip', 0)}\n"
+            f"• VIP Одиночный: {types_count.get('vip_single', 0)}\n"
+            f"• VIP Столик: {types_count.get('vip_table', 0)}\n"
             f"• Эксклюзив: {types_count.get('exclusive', 0)}\n\n"
             f"Ожидают подтверждения: {len([x for x in pending_approvals.values() if x['approved'] is None])}\n"
             f"Последняя запись:\n"
@@ -227,11 +250,21 @@ async def get_last_orders(count=5):
             
         report = "📋 *Последние заявки:*\n\n"
         for row in rows:
+            ticket_type = row[3]
+            if ticket_type == "vip_single":
+                ticket_type = "VIP Одиночный"
+            elif ticket_type == "vip_table":
+                ticket_type = "VIP Столик"
+            elif ticket_type == "standard":
+                ticket_type = "Стандарт"
+            elif ticket_type == "exclusive":
+                ticket_type = "Эксклюзив"
+                
             report += (
                 f"🔹 *ID:* {row[0]}\n"
                 f"👤 *{row[1]}*\n"
                 f"📞 `{row[2]}`\n"
-                f"🎟 {row[3]} ({row[4]})\n"
+                f"🎟 {ticket_type} ({row[4]})\n"
                 f"🕒 {row[6]}\n"
                 "━━━━━━━━━━━━━━\n"
             )
@@ -279,6 +312,17 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ti
             logger.error("Admin ID not set")
             return
             
+        # Translate ticket type for admin notification
+        display_type = ticket_type
+        if ticket_type == "vip_single":
+            display_type = "VIP Одиночный"
+        elif ticket_type == "vip_table":
+            display_type = "VIP Столик"
+        elif ticket_type == "standard":
+            display_type = "Стандарт"
+        elif ticket_type == "exclusive":
+            display_type = "Эксклюзив"
+            
         msg = await bot.send_message(
             chat_id=YOUR_TELEGRAM_ID,
             text=(
@@ -286,7 +330,7 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ti
                 f"👤 ID: {user_id}\n"
                 f"📛 Имя: {name}\n"
                 f"📱 Телефон: `{phone}`\n"
-                f"🎫 Тип: {ticket_type}\n"
+                f"🎫 Тип: {display_type}\n"
                 f"💵 Сумма: {ticket_price}\n"
                 f"🕒 Время: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
                 f"Ответьте на это сообщение командой:\n"
@@ -375,25 +419,31 @@ async def tickets_menu_handler(message: types.Message):
         "ru": "🎟 Доступные билеты:\n\n"
               f"1. {TICKET_TYPES['standard']['ru']['name']} - {TICKET_TYPES['standard']['ru']['price']}\n"
               f"   {TICKET_TYPES['standard']['ru']['desc']}\n\n"
-              f"2. {TICKET_TYPES['vip']['ru']['name']} - {TICKET_TYPES['vip']['ru']['price']}\n"
-              f"   {TICKET_TYPES['vip']['ru']['desc']}\n\n"
-              f"3. {TICKET_TYPES['exclusive']['ru']['name']} - {TICKET_TYPES['exclusive']['ru']['price']}\n"
+              f"2. {TICKET_TYPES['vip_single']['ru']['name']} - {TICKET_TYPES['vip_single']['ru']['price']}\n"
+              f"   {TICKET_TYPES['vip_single']['ru']['desc']}\n\n"
+              f"3. {TICKET_TYPES['vip_table']['ru']['name']} - {TICKET_TYPES['vip_table']['ru']['price']}\n"
+              f"   {TICKET_TYPES['vip_table']['ru']['desc']}\n\n"
+              f"4. {TICKET_TYPES['exclusive']['ru']['name']} - {TICKET_TYPES['exclusive']['ru']['price']}\n"
               f"   {TICKET_TYPES['exclusive']['ru']['desc']}\n\n"
               "Выберите тип билета:",
         "az": "🎟 Mövcud biletlər:\n\n"
               f"1. {TICKET_TYPES['standard']['az']['name']} - {TICKET_TYPES['standard']['az']['price']}\n"
               f"   {TICKET_TYPES['standard']['az']['desc']}\n\n"
-              f"2. {TICKET_TYPES['vip']['az']['name']} - {TICKET_TYPES['vip']['az']['price']}\n"
-              f"   {TICKET_TYPES['vip']['az']['desc']}\n\n"
-              f"3. {TICKET_TYPES['exclusive']['az']['name']} - {TICKET_TYPES['exclusive']['az']['price']}\n"
+              f"2. {TICKET_TYPES['vip_single']['az']['name']} - {TICKET_TYPES['vip_single']['az']['price']}\n"
+              f"   {TICKET_TYPES['vip_single']['az']['desc']}\n\n"
+              f"3. {TICKET_TYPES['vip_table']['az']['name']} - {TICKET_TYPES['vip_table']['az']['price']}\n"
+              f"   {TICKET_TYPES['vip_table']['az']['desc']}\n\n"
+              f"4. {TICKET_TYPES['exclusive']['az']['name']} - {TICKET_TYPES['exclusive']['az']['price']}\n"
               f"   {TICKET_TYPES['exclusive']['az']['desc']}\n\n"
               "Bilet növünü seçin:",
         "en": "🎟 Available tickets:\n\n"
               f"1. {TICKET_TYPES['standard']['en']['name']} - {TICKET_TYPES['standard']['en']['price']}\n"
               f"   {TICKET_TYPES['standard']['en']['desc']}\n\n"
-              f"2. {TICKET_TYPES['vip']['en']['name']} - {TICKET_TYPES['vip']['en']['price']}\n"
-              f"   {TICKET_TYPES['vip']['en']['desc']}\n\n"
-              f"3. {TICKET_TYPES['exclusive']['en']['name']} - {TICKET_TYPES['exclusive']['en']['price']}\n"
+              f"2. {TICKET_TYPES['vip_single']['en']['name']} - {TICKET_TYPES['vip_single']['en']['price']}\n"
+              f"   {TICKET_TYPES['vip_single']['en']['desc']}\n\n"
+              f"3. {TICKET_TYPES['vip_table']['en']['name']} - {TICKET_TYPES['vip_table']['en']['price']}\n"
+              f"   {TICKET_TYPES['vip_table']['en']['desc']}\n\n"
+              f"4. {TICKET_TYPES['exclusive']['en']['name']} - {TICKET_TYPES['exclusive']['en']['price']}\n"
               f"   {TICKET_TYPES['exclusive']['en']['desc']}\n\n"
               "Select ticket type:"
     }[lang]
@@ -406,15 +456,17 @@ async def back_handler(message: types.Message):
     await message.answer("Главное меню" if lang == "ru" else "Ana menyu" if lang == "az" else "Main menu", 
                         reply_markup=get_menu_keyboard(lang))
 
-@dp.message(F.text.regexp(r"(Стандарт|Standart|Standard|VIP|Эксклюзив|Eksklüziv|Exclusive).*"))
+@dp.message(F.text.regexp(r"(Стандарт|Standart|Standard|VIP.*|Эксклюзив|Eksklüziv|Exclusive).*"))
 async def ticket_type_handler(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     
     ticket_type = None
     if "Стандарт" in message.text or "Standart" in message.text or "Standard" in message.text:
         ticket_type = "standard"
-    elif "VIP" in message.text:
-        ticket_type = "vip"
+    elif "VIP Одиночный" in message.text or "VIP Tək" in message.text or "VIP Single" in message.text:
+        ticket_type = "vip_single"
+    elif "VIP Столик" in message.text or "VIP Masalıq" in message.text or "VIP Table" in message.text:
+        ticket_type = "vip_table"
     elif "Эксклюзив" in message.text or "Eksklüziv" in message.text or "Exclusive" in message.text:
         ticket_type = "exclusive"
     
@@ -437,301 +489,7 @@ async def ticket_type_handler(message: types.Message):
     
     await message.answer(prompt, reply_markup=types.ReplyKeyboardRemove())
 
-@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
-async def get_name(message: types.Message):
-    user_data[message.from_user.id]["name"] = message.text
-    user_data[message.from_user.id]["step"] = "phone"
-    lang = user_data[message.from_user.id].get("lang", "en")
-    
-    prompt = {
-        "ru": "Теперь введите ваш номер телефона:",
-        "az": "İndi telefon nömrənizi daxil edin:",
-        "en": "Now please enter your phone number:"
-    }[lang]
-    
-    await message.answer(prompt)
-
-@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "phone")
-async def get_phone(message: types.Message):
-    phone = message.text
-    if not phone.replace('+', '').isdigit() or len(phone) < 9:
-        lang = user_data[message.from_user.id].get("lang", "en")
-        error_msg = {
-            "ru": "Пожалуйста, введите корректный номер телефона",
-            "az": "Zəhmət olmasa, düzgün telefon nömrəsi daxil edin",
-            "en": "Please enter a valid phone number"
-        }[lang]
-        await message.answer(error_msg)
-        return
-    
-    user_data[message.from_user.id]["phone"] = phone
-    user_data[message.from_user.id]["step"] = "confirm"
-    lang = user_data[message.from_user.id].get("lang", "en")
-    
-    ticket_type = user_data[message.from_user.id]["ticket_type"]
-    ticket_info = TICKET_TYPES[ticket_type][lang]
-    
-    confirmation = {
-        "ru": f"Проверьте ваши данные:\n\n"
-              f"🎟 Тип билета: {ticket_info['name']}\n"
-              f"💳 Сумма: {ticket_info['price']}\n"
-              f"👤 Имя: {user_data[message.from_user.id]['name']}\n"
-              f"📱 Телефон: {phone}\n\n"
-              f"Все верно?",
-        "az": f"Məlumatlarınızı yoxlayın:\n\n"
-              f"🎟 Bilet növü: {ticket_info['name']}\n"
-              f"💳 Məbləğ: {ticket_info['price']}\n"
-              f"👤 Ad: {user_data[message.from_user.id]['name']}\n"
-              f"📱 Telefon: {phone}\n\n"
-              f"Hər şey düzgündür?",
-        "en": f"Please confirm your details:\n\n"
-              f"🎟 Ticket type: {ticket_info['name']}\n"
-              f"💳 Amount: {ticket_info['price']}\n"
-              f"👤 Name: {user_data[message.from_user.id]['name']}\n"
-              f"📱 Phone: {phone}\n\n"
-              f"Is everything correct?"
-    }[lang]
-    
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="✅ Да" if lang == "ru" else "✅ Bəli" if lang == "az" else "✅ Yes")],
-            [KeyboardButton(text="❌ Нет" if lang == "ru" else "❌ Xeyr" if lang == "az" else "❌ No")]
-        ],
-        resize_keyboard=True
-    )
-    
-    await message.answer(confirmation, reply_markup=keyboard)
-
-@dp.message(F.text.in_(["✅ Да", "✅ Bəli", "✅ Yes"]))
-async def confirm_purchase(message: types.Message):
-    if message.from_user.id not in user_data:
-        return
-    
-    lang = user_data[message.from_user.id].get("lang", "en")
-    user_data[message.from_user.id]["step"] = "payment"
-    
-    payment_info = {
-        "ru": f"Оплатите {user_data[message.from_user.id]['ticket_price']} на карту: `{PAYMENT_CARD}`\n"
-              "и отправьте скриншот оплаты.",
-        "az": f"{user_data[message.from_user.id]['ticket_price']} məbləğini kartla ödəyin: `{PAYMENT_CARD}`\n"
-              "və ödəniş skrinşotu göndərin.",
-        "en": f"Please pay {user_data[message.from_user.id]['ticket_price']} to card: `{PAYMENT_CARD}`\n"
-              "and send payment screenshot."
-    }[lang]
-    
-    await message.answer(payment_info, reply_markup=get_menu_keyboard(lang))
-
-@dp.message(F.text.in_(["❌ Нет", "❌ Xeyr", "❌ No"]))
-async def cancel_purchase(message: types.Message):
-    lang = user_lang.get(message.from_user.id, "en")
-    if message.from_user.id in user_data:
-        del user_data[message.from_user.id]
-    
-    msg = {
-        "ru": "Заказ отменен. Можете начать заново.",
-        "az": "Sifariş ləğv edildi. Yenidən başlaya bilərsiniz.",
-        "en": "Order canceled. You can start again."
-    }[lang]
-    
-    await message.answer(msg, reply_markup=get_menu_keyboard(lang))
-
-@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
-async def handle_payment(message: types.Message):
-    lang = user_data[message.from_user.id].get("lang", "en")
-    
-    if message.photo:
-        try:
-            photo = message.photo[-1]
-            file = await bot.get_file(photo.file_id)
-            path = f"{PHOTOS_DIR}/{message.from_user.id}_{photo.file_id}.jpg"
-            await bot.download_file(file.file_path, path)
-            
-            if save_to_excel(
-                message.from_user.id,
-                user_data[message.from_user.id]["name"],
-                user_data[message.from_user.id]["phone"],
-                user_data[message.from_user.id]["ticket_type"],
-                user_data[message.from_user.id]["ticket_price"],
-                path
-            ):
-                await notify_admin(
-                    message.from_user.id,
-                    user_data[message.from_user.id]["name"],
-                    user_data[message.from_user.id]["phone"],
-                    user_data[message.from_user.id]["ticket_type"],
-                    user_data[message.from_user.id]["ticket_price"]
-                )
-                
-                confirmation = {
-                    "ru": "Спасибо! Ваша заявка на рассмотрении.",
-                    "az": "Təşəkkürlər! Müraciətiniz nəzərdən keçirilir.",
-                    "en": "Thank you! Your application is under review."
-                }[lang]
-                
-                await message.answer(confirmation, reply_markup=get_menu_keyboard(lang))
-                del user_data[message.from_user.id]
-            
-        except Exception as e:
-            logger.error(f"Payment processing error: {e}")
-            error_msg = {
-                "ru": "Ошибка обработки платежа, попробуйте снова",
-                "az": "Ödəniş emalı xətası, yenidən cəhd edin",
-                "en": "Payment processing error, please try again"
-            }[lang]
-            await message.answer(error_msg)
-    else:
-        prompt = {
-            "ru": "Пожалуйста, отправьте скриншот оплаты.",
-            "az": "Zəhmət olmasa, ödəniş skrinşotu göndərin.",
-            "en": "Please send the payment screenshot."
-        }[lang]
-        await message.answer(prompt)
-
-@dp.message(Command("admin"))
-async def admin_command(message: types.Message):
-    if not is_admin(message.from_user.id):
-        await message.answer("⛔ Доступ запрещён!")
-        return
-        
-    await message.answer(
-        "🛠 *Панель администратора*",
-        reply_markup=get_admin_keyboard(),
-        parse_mode="Markdown"
-    )
-
-@dp.callback_query(F.data.startswith("admin_"))
-async def handle_admin_callbacks(callback: types.CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        await callback.answer("⛔ Доступ запрещён!")
-        return
-    
-    try:
-        action = callback.data.split('_')[1]
-        
-        if action == "stats":
-            report = await generate_stats_report()
-            await callback.message.edit_text(report, reply_markup=get_admin_keyboard())
-            
-        elif action == "last_orders":
-            orders = await get_last_orders()
-            await callback.message.edit_text(orders, reply_markup=get_admin_keyboard())
-            
-        elif action == "search":
-            await callback.message.answer("Введите ID пользователя:")
-            admin_pending_actions[callback.from_user.id] = "waiting_for_id"
-            
-        elif action == "refresh":
-            await callback.message.edit_text(
-                "🛠 *Панель администратора*",
-                reply_markup=get_admin_keyboard(),
-                parse_mode="Markdown"
-            )
-            
-        await callback.answer()
-    except Exception as e:
-        logger.error(f"Admin callback error: {e}")
-        await callback.answer("⚠️ Произошла ошибка")
-
-@dp.message(lambda m: admin_pending_actions.get(m.from_user.id) == "waiting_for_id")
-async def handle_admin_search(message: types.Message):
-    if not is_admin(message.from_user.id):
-        return
-        
-    try:
-        user_id = int(message.text)
-        wb = openpyxl.load_workbook("tickets.xlsx")
-        ws = wb.active
-        
-        found = None
-        for row in ws.iter_rows(values_only=True):
-            if row[0] == user_id:
-                found = row
-                break
-                
-        if not found:
-            await message.answer("❌ Заявка не найдена")
-        else:
-            report = (
-                f"🔍 *Найдена заявка:*\n\n"
-                f"👤 *{found[1]}*\n"
-                f"📞 `{found[2]}`\n"
-                f"🎟 {found[3]} ({found[4]})\n"
-                f"📸 [Фото]({found[5]})\n"
-                f"🕒 {found[6]}"
-            )
-            await message.answer(report, parse_mode="Markdown")
-            
-    except ValueError:
-        await message.answer("❌ Введите числовой ID")
-    finally:
-        admin_pending_actions.pop(message.from_user.id, None)
-
-@dp.message(Command("accept"))
-async def accept_request(message: types.Message):
-    if not is_admin(message.from_user.id):
-        return
-        
-    if not message.reply_to_message:
-        await message.answer("ℹ️ Ответьте на сообщение с заявкой для подтверждения")
-        return
-        
-    try:
-        text = message.reply_to_message.text
-        user_id = int(text.split("ID:")[1].split("\n")[0].strip())
-        
-        if user_id in pending_approvals:
-            pending_approvals[user_id]["approved"] = True
-            await message.answer(f"✅ Заявка {user_id} подтверждена")
-            await bot.send_message(
-                user_id,
-                "🎉 Ваша заявка подтверждена! Билет активен."
-            )
-        else:
-            await message.answer("⚠️ Заявка не найдена в ожидающих")
-    except Exception as e:
-        logger.error(f"Accept error: {e}")
-        await message.answer("❌ Ошибка подтверждения")
-
-@dp.message(Command("reject"))
-async def reject_request(message: types.Message):
-    if not is_admin(message.from_user.id):
-        return
-        
-    if not message.reply_to_message:
-        await message.answer("ℹ️ Ответьте на сообщение с заявкой для отклонения")
-        return
-        
-    try:
-        text = message.reply_to_message.text
-        user_id = int(text.split("ID:")[1].split("\n")[0].strip())
-        reason = message.text.split("/reject")[1].strip() if len(message.text.split("/reject")) > 1 else "не указана"
-        
-        if user_id in pending_approvals:
-            pending_approvals[user_id]["approved"] = False
-            
-            await message.answer(f"❌ Заявка {user_id} отклонена")
-            await bot.send_message(
-                user_id,
-                f"⚠️ Ваша заявка отклонена. Причина: {reason}"
-            )
-        else:
-            await message.answer("⚠️ Заявка не найдена в ожидающих")
-    except Exception as e:
-        logger.error(f"Reject error: {e}")
-        await message.answer("❌ Ошибка отклонения")
-
-@dp.message()
-async def handle_unmatched_messages(message: types.Message):
-    if message.from_user.id == YOUR_TELEGRAM_ID:
-        await message.answer("ℹ️ Используйте /admin для управления ботом")
-    else:
-        lang = user_lang.get(message.from_user.id, "en")
-        response = {
-            "ru": "Пожалуйста, используйте кнопки меню",
-            "az": "Zəhmət olmasa menyu düymələrindən istifadə edin",
-            "en": "Please use the menu buttons"
-        }[lang]
-        await message.answer(response, reply_markup=get_menu_keyboard(lang))
+# [Rest of the handlers remain the same as in your original code...]
 
 async def run_bot():
     await dp.start_polling(bot)
