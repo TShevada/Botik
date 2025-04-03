@@ -3,6 +3,8 @@ import random
 import string
 import asyncio
 from aiogram import Bot, Dispatcher, types, F
+from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -14,8 +16,11 @@ ADMIN_ID = 1291104906  # Your Telegram ID
 PAYMENT_CARD = "4169 7388 9268 3164"  # Your payment card
 PORT = 10001  # Your specified port
 
-# Initialize bot with timeout settings
-bot = Bot(token=TOKEN, parse_mode="HTML")
+# Initialize bot with correct properties
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)  # Correct way to set parse_mode
+)
 dp = Dispatcher()
 
 # ===== DATA STORAGE =====
