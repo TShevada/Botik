@@ -11,7 +11,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 # ===== CONFIGURATION =====
-TOKEN = "7501232713:AAEQG8REnPf83FqVkVqus-ZnJBKDnSt9Qvo"  # Your bot token
+TOKEN = "7875846387:AAG5W_mGBYPagyJHKs4wkBviVbL1wo5Qcqc"  # Your bot token
 ADMIN_ID = 1291104906  # Your Telegram ID
 PAYMENT_CARD = "4169 7388 9268 3164"  # Your payment card
 
