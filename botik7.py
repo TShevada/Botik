@@ -90,6 +90,7 @@ def get_ticket_type_keyboard(lang):
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 # Ticket Types with Payment Notes
+# Ticket Types with Payment Notes (Complete Version)
 TICKET_TYPES = {
     "standard": {
         "az": {
@@ -157,9 +158,81 @@ TICKET_TYPES = {
             ),
             "note": "Don't forget to send payment screenshot!"
         }
+    },
+    "vip_table": {
+        "az": {
+            "name": "VIP (Masa) — 160 AZN",
+            "full_info": (
+                "VIP (Masa) — 160 AZN\n"
+                "• 4 nəfərlik ayrıca masa\n"
+                "• Bütün şirkət üçün qarşılama kokteylləri\n"
+                "• Yerlərin sayı məhduddur\n\n"
+                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
+            ),
+            "note": "Ödəniş etdikdən sonra skrinşot göndərməyi unutmayın!"
+        },
+        "ru": {
+            "name": "VIP (Столик) — 160 AZN",
+            "full_info": (
+                "VIP (Столик) — 160 AZN\n"
+                "• Столик на 4 персоны\n"
+                "• Приветственные коктейли для всей компании\n"
+                "• Количество мест ограничено\n\n"
+                "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
+            ),
+            "note": "Не забудьте отправить скриншот после оплаты!"
+        },
+        "en": {
+            "name": "VIP (Table) — 160 AZN",
+            "full_info": (
+                "VIP (Table) — 160 AZN\n"
+                "• Table for 4 people\n"
+                "• Welcome cocktails for whole group\n"
+                "• Limited seats available\n\n"
+                "❗️Please note that tickets cannot be refunded after purchase"
+            ),
+            "note": "Don't forget to send payment screenshot!"
+        }
+    },
+    "exclusive_table": {
+        "az": {
+            "name": "Exclusive (Masa) — 240 AZN",
+            "full_info": (
+                "Exclusive (Masa) — 240 AZN\n"
+                "• DJ masasının yanında giriş imkanı\n"
+                "• 4 nəfərlik ayrıca masa\n"
+                "• Bütün şirkət üçün qarşılama kokteylləri\n"
+                "• Yerlərin sayı məhduddur\n\n"
+                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
+            ),
+            "note": "Ödəniş etdikdən sonra skrinşot göndərməyi unutmayın!"
+        },
+        "ru": {
+            "name": "Exclusive (Столик) — 240 AZN",
+            "full_info": (
+                "Exclusive (Столик) — 240 AZN\n"
+                "• Доступ к DJ-зоне\n"
+                "• Столик на 4 персоны\n"
+                "• Приветственные коктейли для всей компании\n"
+                "• Количество мест ограничено\n\n"
+                "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
+            ),
+            "note": "Не забудьте отправить скриншот после оплаты!"
+        },
+        "en": {
+            "name": "Exclusive (Table) — 240 AZN",
+            "full_info": (
+                "Exclusive (Table) — 240 AZN\n"
+                "• DJ area access\n"
+                "• Table for 4 people\n"
+                "• Welcome cocktails for whole group\n"
+                "• Limited seats available\n\n"
+                "❗️Please note that tickets cannot be refunded after purchase"
+            ),
+            "note": "Don't forget to send payment screenshot!"
+        }
     }
 }
-
 # Handlers
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
