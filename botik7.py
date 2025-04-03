@@ -1,6 +1,8 @@
 import os
 import logging
 import asyncio
+import random
+import string
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
@@ -29,97 +31,10 @@ user_data = {}
 pending_approvals = {}
 approved_tickets = defaultdict(list)
 
-# --- Ticket Types ---
-TICKET_TYPES = {
-    "standard": {
-        "az": {
-            "name": "Standard — 20 AZN",
-            "desc": "• Qarşılama kokteylləri\n• Fan Zonası",
-            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
-        },
-        "ru": {
-            "name": "Стандарт — 20 AZN", 
-            "desc": "• Приветственные коктейли\n• Fan Zone",
-            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
-        },
-        "en": {
-            "name": "Standard — 20 AZN",
-            "desc": "• Welcome cocktails\n• Fan Zone",
-            "note": "❗️Please note that tickets cannot be refunded after purchase"
-        }
-    },
-    "vip_single": {
-        "az": {
-            "name": "VIP (Fərdi) — 40 AZN",
-            "desc": "• Fərdi masa yeri\n• Qarşılama kokteyli\n• Yerlərin sayı məhduddur",
-            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
-        },
-        "ru": {
-            "name": "VIP (Индивидуальный) — 40 AZN",
-            "desc": "• Индивидуальное место\n• Приветственный коктейль\n• Количество мест ограничено",
-            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
-        },
-        "en": {
-            "name": "VIP (Single) — 40 AZN", 
-            "desc": "• Individual seat\n• Welcome cocktail\n• Limited seats available",
-            "note": "❗️Please note that tickets cannot be refunded after purchase"
-        }
-    },
-    "vip_table": {
-        "az": {
-            "name": "VIP (Masa) — 160 AZN",
-            "desc": "• 4 nəfərlik ayrıca masa\n• Bütün şirkət üçün qarşılama kokteylləri\n• Yerlərin sayı məhduddur",
-            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
-        },
-        "ru": {
-            "name": "VIP (Столик) — 160 AZN",
-            "desc": "• Столик на 4 персоны\n• Приветственные коктейли для всей компании\n• Количество мест ограничено", 
-            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
-        },
-        "en": {
-            "name": "VIP (Table) — 160 AZN",
-            "desc": "• Table for 4 people\n• Welcome cocktails for whole group\n• Limited seats available",
-            "note": "❗️Please note that tickets cannot be refunded after purchase"
-        }
-    },
-    "exclusive_table": {
-        "az": {
-            "name": "Exclusive (Masa) — 240 AZN",
-            "desc": "• DJ masasının yanında giriş imkanı\n• 4 nəfərlik ayrıca masa\n• Bütün şirkət üçün qarşılama kokteylləri\n• Yerlərin sayı məhduddur",
-            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
-        },
-        "ru": {
-            "name": "Exclusive (Столик) — 240 AZN",
-            "desc": "• Доступ к DJ-зоне\n• Столик на 4 персоны\n• Приветственные коктейли для всей компании\n• Количество мест ограничено",
-            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
-        },
-        "en": {
-            "name": "Exclusive (Table) — 240 AZN",
-            "desc": "• DJ area access\n• Table for 4 people\n• Welcome cocktails for whole group\n• Limited seats available",
-            "note": "❗️Please note that tickets cannot be refunded after purchase"
-        }
-    }
-}
-
-# --- Web Server for Render ---
-async def health_check(request):
-    return web.Response(text="Bot is running")
-
-async def run_web_server():
-    app = web.Application()
-    app.router.add_get("/", health_check)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    try:
-        site = web.TCPSite(runner, "0.0.0.0", PORT)
-        await site.start()
-        logger.info(f"🌐 Health check running on port {PORT}")
-    except OSError as e:
-        logger.error(f"Port {PORT} unavailable, trying fallback...")
-        site = web.TCPSite(runner, "0.0.0.0", 10002)  # Fallback port
-        await site.start()
-
 # --- Helper Functions ---
+def generate_ticket_id():
+    return ''.join(random.choices(string.digits, k=6))
+
 def is_admin(user_id: int) -> bool:
     return user_id == ADMIN_ID
 
@@ -181,7 +96,179 @@ def get_admin_keyboard():
          InlineKeyboardButton(text="🔄 Обновить", callback_data="admin_refresh")]
     ])
 
-# [Previous imports and configuration remain the same...]
+# --- Ticket Types ---
+TICKET_TYPES = {
+    "standard": {
+        "az": {
+            "name": "Standard — 20 AZN",
+            "desc": "• Qarşılama kokteylləri\n• Fan Zonası",
+            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
+            "full_info": (
+                "Standard — 20 AZN\n"
+                "• Qarşılama kokteylləri\n"
+                "• Fan Zonası\n\n"
+                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
+            )
+        },
+        "ru": {
+            "name": "Стандарт — 20 AZN", 
+            "desc": "• Приветственные коктейли\n• Fan Zone",
+            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки",
+            "full_info": (
+                "Стандарт — 20 AZN\n"
+                "• Приветственные коктейли\n"
+                "• Fan Zone\n\n"
+                "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
+            )
+        },
+        "en": {
+            "name": "Standard — 20 AZN",
+            "desc": "• Welcome cocktails\n• Fan Zone",
+            "note": "❗️Please note that tickets cannot be refunded after purchase",
+            "full_info": (
+                "Standard — 20 AZN\n"
+                "• Welcome cocktails\n"
+                "• Fan Zone\n\n"
+                "❗️Please note that tickets cannot be refunded after purchase"
+            )
+        }
+    },
+    "vip_single": {
+        "az": {
+            "name": "VIP (Fərdi) — 40 AZN",
+            "desc": "• Fərdi masa yeri\n• Qarşılama kokteyli\n• Yerlərin sayı məhduddur",
+            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
+            "full_info": (
+                "VIP (Fərdi) — 40 AZN\n"
+                "• Fərdi masa yeri\n"
+                "• Qarşılama kokteyli\n"
+                "• Yerlərin sayı məhduddur\n\n"
+                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
+            )
+        },
+        "ru": {
+            "name": "VIP (Индивидуальный) — 40 AZN",
+            "desc": "• Индивидуальное место\n• Приветственный коктейль\n• Количество мест ограничено",
+            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки",
+            "full_info": (
+                "VIP (Индивидуальный) — 40 AZN\n"
+                "• Индивидуальное место\n"
+                "• Приветственный коктейль\n"
+                "• Количество мест ограничено\n\n"
+                "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
+            )
+        },
+        "en": {
+            "name": "VIP (Single) — 40 AZN", 
+            "desc": "• Individual seat\n• Welcome cocktail\n• Limited seats available",
+            "note": "❗️Please note that tickets cannot be refunded after purchase",
+            "full_info": (
+                "VIP (Single) — 40 AZN\n"
+                "• Individual seat\n"
+                "• Welcome cocktail\n"
+                "• Limited seats available\n\n"
+                "❗️Please note that tickets cannot be refunded after purchase"
+            )
+        }
+    },
+    "vip_table": {
+        "az": {
+            "name": "VIP (Masa) — 160 AZN",
+            "desc": "• 4 nəfərlik ayrıca masa\n• Bütün şirkət üçün qarşılama kokteylləri\n• Yerlərin sayı məhduddur",
+            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
+            "full_info": (
+                "VIP (Masa) — 160 AZN\n"
+                "• 4 nəfərlik ayrıca masa\n"
+                "• Bütün şirkət üçün qarşılama kokteylləri\n"
+                "• Yerlərin sayı məhduddur\n\n"
+                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
+            )
+        },
+        "ru": {
+            "name": "VIP (Столик) — 160 AZN",
+            "desc": "• Столик на 4 персоны\n• Приветственные коктейли для всей компании\n• Количество мест ограничено", 
+            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки",
+            "full_info": (
+                "VIP (Столик) — 160 AZN\n"
+                "• Столик на 4 персоны\n"
+                "• Приветственные коктейли для всей компании\n"
+                "• Количество мест ограничено\n\n"
+                "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
+            )
+        },
+        "en": {
+            "name": "VIP (Table) — 160 AZN",
+            "desc": "• Table for 4 people\n• Welcome cocktails for whole group\n• Limited seats available",
+            "note": "❗️Please note that tickets cannot be refunded after purchase",
+            "full_info": (
+                "VIP (Table) — 160 AZN\n"
+                "• Table for 4 people\n"
+                "• Welcome cocktails for whole group\n"
+                "• Limited seats available\n\n"
+                "❗️Please note that tickets cannot be refunded after purchase"
+            )
+        }
+    },
+    "exclusive_table": {
+        "az": {
+            "name": "Exclusive (Masa) — 240 AZN",
+            "desc": "• DJ masasının yanında giriş imkanı\n• 4 nəfərlik ayrıca masa\n• Bütün şirkət üçün qarşılama kokteylləri\n• Yerlərin sayı məhduddur",
+            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
+            "full_info": (
+                "Exclusive (Masa) — 240 AZN\n"
+                "• DJ masasının yanında giriş imkanı\n"
+                "• 4 nəfərlik ayrıca masa\n"
+                "• Bütün şirkət üçün qarşılama kokteylləri\n"
+                "• Yerlərin sayı məhduddur\n\n"
+                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
+            )
+        },
+        "ru": {
+            "name": "Exclusive (Столик) — 240 AZN",
+            "desc": "• Доступ к DJ-зоне\n• Столик на 4 персоны\n• Приветственные коктейли для всей компании\n• Количество мест ограничено",
+            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки",
+            "full_info": (
+                "Exclusive (Столик) — 240 AZN\n"
+                "• Доступ к DJ-зоне\n"
+                "• Столик на 4 персоны\n"
+                "• Приветственные коктейли для всей компании\n"
+                "• Количество мест ограничено\n\n"
+                "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
+            )
+        },
+        "en": {
+            "name": "Exclusive (Table) — 240 AZN",
+            "desc": "• DJ area access\n• Table for 4 people\n• Welcome cocktails for whole group\n• Limited seats available",
+            "note": "❗️Please note that tickets cannot be refunded after purchase",
+            "full_info": (
+                "Exclusive (Table) — 240 AZN\n"
+                "• DJ area access\n"
+                "• Table for 4 people\n"
+                "• Welcome cocktails for whole group\n"
+                "• Limited seats available\n\n"
+                "❗️Please note that tickets cannot be refunded after purchase"
+            )
+        }
+    }
+}
+
+# --- Web Server for Render ---
+async def health_check(request):
+    return web.Response(text="Bot is running")
+
+async def run_web_server():
+    app = web.Application()
+    app.router.add_get("/", health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    try:
+        site = web.TCPSite(runner, "0.0.0.0", PORT)
+        await site.start()
+        logger.info(f"🌐 Health check running on port {PORT}")
+    except OSError as e:
+        logger.error(f"Port {PORT} unavailable, trying fallback...")
+        site = web.TCPSite(runner, "0.0.0.0", 10002)  # Fallback port
+        await site.start()
 
 # --- Handlers ---
 @dp.message(Command("start"))
@@ -249,24 +336,27 @@ async def tickets_menu_handler(message: types.Message):
         reply_markup=get_ticket_type_keyboard(lang)
     )
 
-@dp.message(lambda message: any(
-    message.text.startswith(ticket[lang]["name"].split("—")[0].strip())
-    for ticket in TICKET_TYPES.values()
-    for lang in ["az", "ru", "en"]
-))
+@dp.message(F.text)
 async def ticket_type_handler(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     
     # Find which ticket type was selected
     ticket_type = None
     for t_type, t_data in TICKET_TYPES.items():
-        if message.text.startswith(t_data[lang]["name"].split("—")[0].strip()):
+        if message.text == t_data[lang]["name"]:
             ticket_type = t_type
             break
     
     if not ticket_type:
+        # Check if it's a back command
+        if message.text in ["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]:
+            await back_handler(message)
+            return
         await message.answer("Неверный тип билета" if lang == "ru" else "Yanlış bilet növü" if lang == "az" else "Invalid ticket type")
         return
+    
+    # Send full ticket info
+    await message.answer(TICKET_TYPES[ticket_type][lang]["full_info"])
     
     user_data[message.from_user.id] = {
         "step": "name",
@@ -384,61 +474,74 @@ async def cancel_purchase(message: types.Message):
     
     await message.answer(msg, reply_markup=get_menu_keyboard(lang))
 
-@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
-async def handle_payment(message: types.Message):
+@dp.message(F.photo, lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
+async def handle_payment_photo(message: types.Message):
     lang = user_data[message.from_user.id].get("lang", "en")
     
-    if message.photo:
-        try:
-            photo = message.photo[-1]
-            user_id = message.from_user.id
-            data = user_data[user_id]
-            
-            # Store the pending approval
-            pending_approvals[user_id] = {
-                "name": data["name"],
-                "phone": data["phone"],
-                "ticket_type": data["ticket_type"],
-                "ticket_price": data["ticket_price"],
-                "photo_id": photo.file_id,
-                "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "approved": None
-            }
-            
-            # Notify admin
-            await notify_admin(
-                user_id,
-                data["name"],
-                data["phone"],
-                data["ticket_type"],
-                data["ticket_price"],
-                photo.file_id
-            )
-            
-            confirmation = {
-                "ru": "Спасибо! Ваша заявка на рассмотрении.",
-                "az": "Təşəkkürlər! Müraciətiniz nəzərdən keçirilir.",
-                "en": "Thank you! Your application is under review."
-            }[lang]
-            
-            await message.answer(confirmation, reply_markup=get_menu_keyboard(lang))
-            del user_data[message.from_user.id]
-            
-        except Exception as e:
-            logger.error(f"Payment processing error: {e}")
-            error_msg = {
-                "ru": "Ошибка обработки платежа, попробуйте снова",
-                "az": "Ödəniş emalı xətası, yenidən cəhd edin",
-                "en": "Payment processing error, please try again"
-            }[lang]
-            await message.answer(error_msg)
-    else:
-        prompt = {
-            "ru": "Пожалуйста, отправьте скриншот оплаты.",
-            "az": "Zəhmət olmasa, ödəniş skrinşotu göndərin.",
-            "en": "Please send the payment screenshot."
+    try:
+        photo = message.photo[-1]
+        user_id = message.from_user.id
+        data = user_data[user_id]
+        
+        # Generate ticket ID
+        ticket_id = generate_ticket_id()
+        
+        # Store the pending approval
+        pending_approvals[user_id] = {
+            "name": data["name"],
+            "phone": data["phone"],
+            "ticket_type": data["ticket_type"],
+            "ticket_price": data["ticket_price"],
+            "photo_id": photo.file_id,
+            "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "approved": None,
+            "ticket_id": ticket_id
+        }
+        
+        # Notify admin
+        await notify_admin(
+            user_id,
+            data["name"],
+            data["phone"],
+            data["ticket_type"],
+            data["ticket_price"],
+            photo.file_id,
+            ticket_id
+        )
+        
+        confirmation = {
+            "ru": f"Спасибо! Ваша заявка на рассмотрении.\n\nВаш номер билета: {ticket_id}",
+            "az": f"Təşəkkürlər! Müraciətiniz nəzərdən keçirilir.\n\nBilet nömrəniz: {ticket_id}",
+            "en": f"Thank you! Your application is under review.\n\nYour ticket number: {ticket_id}"
         }[lang]
-        await message.answer(prompt)
+        
+        await message.answer(confirmation, reply_markup=get_menu_keyboard(lang))
+        del user_data[message.from_user.id]
+        
+    except Exception as e:
+        logger.error(f"Payment processing error: {e}")
+        error_msg = {
+            "ru": "Ошибка обработки платежа, попробуйте снова",
+            "az": "Ödəniş emalı xətası, yenidən cəhd edin",
+            "en": "Payment processing error, please try again"
+        }[lang]
+        await message.answer(error_msg)
+
+@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
+async def handle_payment_text(message: types.Message):
+    lang = user_data[message.from_user.id].get("lang", "en")
+    prompt = {
+        "ru": "Пожалуйста, отправьте скриншот оплаты.",
+        "az": "Zəhmət olmasa, ödəniş skrinşotu göndərin.",
+        "en": "Please send the payment screenshot."
+    }[lang]
+    await message.answer(prompt)
+
+@dp.message(F.text.in_(["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]))
+async def back_handler(message: types.Message):
+    lang = user_lang.get(message.from_user.id, "en")
+    await message.answer("Главное меню" if lang == "ru" else "Ana menyu" if lang == "az" else "Main menu", 
+                        reply_markup=get_menu_keyboard(lang))
 
 @dp.message(Command("admin"))
 async def admin_command(message: types.Message):
@@ -470,6 +573,7 @@ async def handle_admin_callbacks(callback: types.CallbackQuery):
             for user_id, data in list(pending_approvals.items())[-5:]:
                 report += (
                     f"🔹 *ID:* {user_id}\n"
+                    f"🎫 *Номер билета:* {data.get('ticket_id', 'N/A')}\n"
                     f"👤 *{data['name']}*\n"
                     f"📞 `{data['phone']}`\n"
                     f"🎟 {data['ticket_type']} ({data['ticket_price']})\n"
@@ -508,6 +612,7 @@ async def handle_admin_search(message: types.Message):
         else:
             report = (
                 f"🔍 *Найдена заявка:*\n\n"
+                f"🎫 *Номер билета:* {data.get('ticket_id', 'N/A')}\n"
                 f"👤 *{data['name']}*\n"
                 f"📞 `{data['phone']}`\n"
                 f"🎟 {data['ticket_type']} ({data['ticket_price']})\n"
@@ -540,13 +645,19 @@ async def accept_request(message: types.Message):
             # Move to approved tickets
             approved_tickets[user_id] = pending_approvals[user_id]
             approved_tickets[user_id]["approved"] = True
+            ticket_id = approved_tickets[user_id].get("ticket_id", "N/A")
             del pending_approvals[user_id]
             
-            await message.answer(f"✅ Заявка {user_id} подтверждена")
-            await bot.send_message(
-                user_id,
-                "🎉 Ваша заявка подтверждена! Билет активен."
-            )
+            await message.answer(f"✅ Заявка {user_id} подтверждена (Номер билета: {ticket_id})")
+            
+            lang = approved_tickets[user_id].get("lang", "en")
+            confirmation = {
+                "ru": f"🎉 Ваша заявка подтверждена! Билет активен.\n\nВаш номер билета: {ticket_id}",
+                "az": f"🎉 Müraciətiniz təsdiqləndi! Bilet aktivdir.\n\nBilet nömrəniz: {ticket_id}",
+                "en": f"🎉 Your application has been approved! Ticket is active.\n\nYour ticket number: {ticket_id}"
+            }[lang]
+            
+            await bot.send_message(user_id, confirmation)
         else:
             await message.answer("⚠️ Заявка не найдена в ожидающих")
     except Exception as e:
@@ -568,13 +679,18 @@ async def reject_request(message: types.Message):
         reason = message.text.split("/reject")[1].strip() if len(message.text.split("/reject")) > 1 else "не указана"
         
         if user_id in pending_approvals:
-            pending_approvals[user_id]["approved"] = False
+            lang = pending_approvals[user_id].get("lang", "en")
+            ticket_id = pending_approvals[user_id].get("ticket_id", "N/A")
             
-            await message.answer(f"❌ Заявка {user_id} отклонена")
-            await bot.send_message(
-                user_id,
-                f"⚠️ Ваша заявка отклонена. Причина: {reason}"
-            )
+            await message.answer(f"❌ Заявка {user_id} отклонена (Номер билета: {ticket_id})")
+            
+            rejection_msg = {
+                "ru": f"⚠️ Ваша заявка отклонена. Причина: {reason}\n\nНомер билета: {ticket_id}",
+                "az": f"⚠️ Müraciətiniz rədd edildi. Səbəb: {reason}\n\nBilet nömrəniz: {ticket_id}",
+                "en": f"⚠️ Your application has been rejected. Reason: {reason}\n\nTicket number: {ticket_id}"
+            }[lang]
+            
+            await bot.send_message(user_id, rejection_msg)
             del pending_approvals[user_id]
         else:
             await message.answer("⚠️ Заявка не найдена в ожидающих")
@@ -582,7 +698,7 @@ async def reject_request(message: types.Message):
         logger.error(f"Reject error: {e}")
         await message.answer("❌ Ошибка отклонения")
 
-async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ticket_price: str, photo_id: str):
+async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ticket_price: str, photo_id: str, ticket_id: str):
     try:
         # Send photo first
         await bot.send_photo(
@@ -590,6 +706,7 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ti
             photo_id,
             caption=(
                 f"🆕 *Новая заявка на билет*\n\n"
+                f"🎫 *Номер билета:* {ticket_id}\n"
                 f"👤 ID: {user_id}\n"
                 f"📛 Имя: {name}\n"
                 f"📱 Телефон: `{phone}`\n"
