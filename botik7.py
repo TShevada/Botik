@@ -10,20 +10,36 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiohttp import web
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # ===== CONFIGURATION =====
-# Use environment variables instead of hardcoding!
-TOKEN = os.getenv('TELEGRAM_TOKEN', '7883966462:AAG2udLydnyXDibLWyw8WrlVntzUB-KMXfE')
-ADMIN_ID = int(os.getenv('ADMIN_ID', '1291104906'))
-PAYMENT_CARD = os.getenv('PAYMENT_CARD', '4169 7388 9268 3164')
-PORT = int(os.getenv('PORT', '8080'))  # Added PORT definition
+TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+ADMIN_ID = int(os.getenv('ADMIN_ID'))
+PAYMENT_CARD = os.getenv('PAYMENT_CARD')
+PORT = int(os.getenv('PORT', '10001'))
 
 # Initialize bot
 bot = Bot(
     token=TOKEN,
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
 dp = Dispatcher()
+
+# ===== WEB SERVER =====
+async def health_check(request):
+    return web.Response(text="Bot is running")
+
+async def run_web_app():
+    """Run health check web server"""
+    app = web.Application()
+    app.router.add_get("/", health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+    print(f"🌐 Health check at http://0.0.0.0:{PORT}")
 
 # ===== DATA STORAGE =====
 pending_orders = {}  # Stores orders awaiting approval
@@ -325,12 +341,14 @@ async def main():
         print("🤖 Starting bot...")
         
         # Start web server in background
-        asyncio.create_task(run_web_app())
+        web_task = asyncio.create_task(run_web_app())
         
         # Start bot polling
         print("🤖 Bot starting in polling mode...")
         await dp.start_polling(bot)
         
+        # Cleanup
+        await web_task
     except Exception as e:
         print(f"❌ Bot failed: {e}")
     finally:
