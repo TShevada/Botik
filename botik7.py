@@ -16,9 +16,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ===== CONFIGURATION =====
-TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-ADMIN_ID = int(os.getenv('ADMIN_ID'))
-PAYMENT_CARD = os.getenv('PAYMENT_CARD')
+TOKEN = os.getenv('7501232713:AAEQG8REnPf83FqVkVqus-ZnJBKDnSt9Qvo')
+ADMIN_ID = int(os.getenv('1291104906'))
+PAYMENT_CARD = os.getenv('4169 7388 9268 3164')
 PORT = int(os.getenv('PORT', '10001'))  # Render-compatible port
 
 # Initialize bot
