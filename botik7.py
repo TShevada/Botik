@@ -5,6 +5,7 @@ import asyncio
 import logging
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties  # <-- Add this import
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
 from collections import defaultdict
@@ -20,9 +21,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 os.makedirs(PHOTOS_DIR, exist_ok=True)
 
-bot = Bot(token=TOKEN, parse_mode=ParseMode.MARKDOWN)
+# Correct Bot initialization for aiogram 3.0+
+bot = Bot(
+    token=TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN)  # <-- Correct way
+)
 dp = Dispatcher()
-
 # --- Storage ---
 user_data = {}
 pending_approvals = {}
@@ -385,6 +389,7 @@ async def reject_order(message: types.Message):
         await message.answer("❌ Ошибка отклонения")
 
 # --- Main ---
+
 async def main():
     await dp.start_polling(bot)
 
