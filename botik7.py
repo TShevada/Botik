@@ -10,6 +10,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from collections import defaultdict
 from aiohttp import web
+import random
 
 # ===== CONFIGURATION =====
 TOKEN = "7501232713:AAEQG8REnPf83FqVkVqus-ZnJBKDnSt9Qvo"
@@ -21,6 +22,7 @@ PAYMENT_CARD = "4169 7388 9268 3164"
 PHOTOS_DIR = "payment_screenshots"
 WELCOME_BANNER = "welcome_banner.jpg"
 PORT = 10000
+TICKET_PREFIX = "#KT"
 
 # Setup
 logging.basicConfig(level=logging.INFO)
@@ -36,6 +38,7 @@ user_data = {}
 save_counter = defaultdict(int)
 admin_pending_actions = {}
 pending_approvals = {}
+used_ticket_numbers = set()
 
 # Ticket Prices
 TICKET_TYPES = {
@@ -43,80 +46,80 @@ TICKET_TYPES = {
         "ru": {
             "name": "Стандарт",
             "price": "20 манат",
-            "desc": "Welcome Cocktails, Fan Zone",
-            "features": ["Welcome Cocktails", "Fan Zone"]
+            "desc": "Специальное меню, Fan Zone",
+            "features": ["Специальное меню", "Fan Zone"]
         },
         "az": {
             "name": "Standart",
             "price": "20 manat",
-            "desc": "Welcome Cocktails, Fan Zone",
-            "features": ["Welcome Cocktails", "Fan Zone"]
+            "desc": "Xüsusi menyu, Fan Zone",
+            "features": ["Xüsusi menyu", "Fan Zone"]
         },
         "en": {
             "name": "Standard",
             "price": "20 AZN",
-            "desc": "Welcome Cocktails, Fan Zone",
-            "features": ["Welcome Cocktails", "Fan Zone"]
+            "desc": "Special Menu, Fan Zone",
+            "features": ["Special Menu", "Fan Zone"]
         }
     },
     "vip_single": {
         "ru": {
             "name": "VIP (Одиночный)",
             "price": "40 манат",
-            "desc": "Место для сидения, Welcome Cocktails, ограничено 60 мест",
-            "features": ["Место для сидения", "Welcome Cocktails", "Ограничено 60 мест"]
+            "desc": "Место для сидения, Специальное меню, ограничено 60 мест",
+            "features": ["Место для сидения", "Специальное меню", "Ограничено 60 мест"]
         },
         "az": {
             "name": "VIP (Tək)",
             "price": "40 manat",
-            "desc": "Oturaq yeri, Welcome Cocktails, 60 məhdud yer",
-            "features": ["Oturaq yeri", "Welcome Cocktails", "60 məhdud yer"]
+            "desc": "Oturaq yeri, Xüsusi menyu, 60 məhdud yer",
+            "features": ["Oturaq yeri", "Xüsusi menyu", "60 məhdud yer"]
         },
         "en": {
             "name": "VIP (Single)",
             "price": "40 AZN",
-            "desc": "Seating available, Welcome Cocktails, 60 limited space",
-            "features": ["Seating available", "Welcome Cocktails", "60 limited space"]
+            "desc": "Seating available, Special Menu, 60 limited space",
+            "features": ["Seating available", "Special Menu", "60 limited space"]
         }
     },
     "vip_table": {
         "ru": {
             "name": "VIP (Столик)",
             "price": "160 манат",
-            "desc": "Весь столик (4 места), Welcome Cocktails, VIP зона",
-            "features": ["Весь столик (4 места)", "Welcome Cocktails", "VIP зона"]
+            "desc": "Весь столик (4 места), Специальное меню, VIP зона",
+            "features": ["Весь столик (4 места)", "Специальное меню", "VIP зона"]
         },
         "az": {
             "name": "VIP (Masalıq)",
             "price": "160 manat",
-            "desc": "Bütün masa (4 nəfər), Welcome Cocktails, VIP zona",
-            "features": ["Bütün masa (4 nəfər)", "Welcome Cocktails", "VIP zona"]
+            "desc": "Bütün masa (4 nəfər), Xüsusi menyu, VIP zona",
+            "features": ["Bütün masa (4 nəfər)", "Xüsusi menyu", "VIP zona"]
         },
         "en": {
             "name": "VIP (Table)",
             "price": "160 AZN",
-            "desc": "Whole table (4 seats), Welcome Cocktails, VIP area",
-            "features": ["Whole table (4 seats)", "Welcome Cocktails", "VIP area"]
+            "desc": "Whole table (4 seats), Special Menu, VIP area",
+            "features": ["Whole table (4 seats)", "Special Menu", "VIP area"]
         }
     },
     "exclusive": {
         "ru": {
             "name": "Эксклюзив",
             "price": "60 манат",
-            "desc": "За DJ-пультом, Место для сидения, Welcome Cocktails, ограничено 10 мест",
-            "features": ["За DJ-пультом", "Место для сидения", "Welcome Cocktails", "Ограничено 10 мест"]
+            "desc": "За DJ-пультом, Место для сидения, Специальное меню, ограничено 10 мест",
+            "features": ["За DJ-пультом", "Место для сидения", "Специальное меню", "Ограничено 10 мест"]
         },
         "az": {
             "name": "Eksklüziv",
             "price": "60 manat",
-            "desc": "DJ qutusunun arxasında, Oturaq yeri, Welcome Cocktails, 10 məhdud yer",
-            "features": ["DJ qutusunun arxasında", "Oturaq yeri", "Welcome Cocktails", "10 məhdud yer"]
+            "desc": "DJ qutusunun arxasında, Oturaq yeri, Xüsusi menyu, 10 məhdud yer",
+            "features": ["DJ qutusunun arxasında", "Oturaq yeri", "Xüsusi menyu", "10 məhdud yer"]
         },
         "en": {
             "name": "Exclusive",
             "price": "60 AZN",
-            "desc": "Behind the DJ booth, Seating available, Welcome Cocktails, 10 limited space",
-            "features": ["Behind the DJ booth", "Seating available", "Welcome Cocktails", "10 limited space"]
+            "desc": "Behind the DJ booth, Seating available, Special Menu, 10 limited space",
+            "features": ["Behind the DJ booth", "Seating available", "Special Menu", "10 limited space"]
         }
     }
 }
@@ -124,6 +127,15 @@ TICKET_TYPES = {
 # Helper Functions
 def is_admin(user_id: int) -> bool:
     return user_id == YOUR_TELEGRAM_ID
+
+def generate_ticket_number():
+    while True:
+        part1 = ''.join([str(random.randint(0, 9)) for _ in range(4)])
+        part2 = ''.join([str(random.randint(0, 9)) for _ in range(4)])
+        number = f"{TICKET_PREFIX}-{part1}-{part2}"
+        if number not in used_ticket_numbers:
+            used_ticket_numbers.add(number)
+            return number
 
 def get_lang_keyboard():
     return ReplyKeyboardMarkup(
@@ -232,7 +244,7 @@ async def generate_stats_report():
             f"• Эксклюзив: {types_count.get('exclusive', 0)}\n\n"
             f"Ожидают подтверждения: {len([x for x in pending_approvals.values() if x['approved'] is None])}\n"
             f"Последняя запись:\n"
-            f"🕒 {rows[-1][6]}"
+            f"🕒 {rows[-1][7]}"
         )
         return report
     except Exception as e:
@@ -262,10 +274,11 @@ async def get_last_orders(count=5):
                 
             report += (
                 f"🔹 *ID:* {row[0]}\n"
+                f"🎫 *Номер билета:* {row[6]}\n"
                 f"👤 *{row[1]}*\n"
                 f"📞 `{row[2]}`\n"
                 f"🎟 {ticket_type} ({row[4]})\n"
-                f"🕒 {row[6]}\n"
+                f"🕒 {row[7]}\n"
                 "━━━━━━━━━━━━━━\n"
             )
         return report
@@ -273,7 +286,7 @@ async def get_last_orders(count=5):
         logger.error(f"Orders error: {e}")
         return f"⚠️ Ошибка: {e}"
 
-def save_to_excel(user_id, name, phone, ticket_type, ticket_price, photo_path):
+def save_to_excel(user_id, name, phone, ticket_type, ticket_price, photo_path, ticket_number):
     try:
         file_path = "tickets.xlsx"
         if os.path.exists(file_path):
@@ -282,7 +295,7 @@ def save_to_excel(user_id, name, phone, ticket_type, ticket_price, photo_path):
         else:
             wb = openpyxl.Workbook()
             ws = wb.active
-            ws.append(["User ID", "Name", "Phone", "Ticket Type", "Ticket Price", "Photo Path", "Date"])
+            ws.append(["User ID", "Name", "Phone", "Ticket Type", "Ticket Price", "Photo Path", "Ticket Number", "Date"])
         
         ws.append([
             user_id,
@@ -291,6 +304,7 @@ def save_to_excel(user_id, name, phone, ticket_type, ticket_price, photo_path):
             ticket_type,
             ticket_price,
             photo_path,
+            ticket_number,
             datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         ])
         wb.save(file_path)
@@ -306,7 +320,7 @@ def save_to_excel(user_id, name, phone, ticket_type, ticket_price, photo_path):
         logger.error(f"Database error: {e}")
         return False
 
-async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ticket_price: str):
+async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ticket_price: str, ticket_number: str):
     try:
         if not YOUR_TELEGRAM_ID:
             logger.error("Admin ID not set")
@@ -327,6 +341,7 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ti
             chat_id=YOUR_TELEGRAM_ID,
             text=(
                 f"🆕 *Новая заявка на билет*\n\n"
+                f"🎫 Номер билета: {ticket_number}\n"
                 f"👤 ID: {user_id}\n"
                 f"📛 Имя: {name}\n"
                 f"📱 Телефон: `{phone}`\n"
@@ -342,7 +357,7 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str, ti
         
         pending_approvals[user_id] = {
             "message_id": msg.message_id,
-            "data": (user_id, name, phone, ticket_type, ticket_price),
+            "data": (user_id, name, phone, ticket_type, ticket_price, ticket_number),
             "approved": None
         }
     except Exception as e:
@@ -425,6 +440,7 @@ async def tickets_menu_handler(message: types.Message):
               f"   {TICKET_TYPES['vip_table']['ru']['desc']}\n\n"
               f"4. {TICKET_TYPES['exclusive']['ru']['name']} - {TICKET_TYPES['exclusive']['ru']['price']}\n"
               f"   {TICKET_TYPES['exclusive']['ru']['desc']}\n\n"
+              "*Обратите внимание:* Билеты не подлежат возврату и обмену.\n"
               "Выберите тип билета:",
         "az": "🎟 Mövcud biletlər:\n\n"
               f"1. {TICKET_TYPES['standard']['az']['name']} - {TICKET_TYPES['standard']['az']['price']}\n"
@@ -435,6 +451,7 @@ async def tickets_menu_handler(message: types.Message):
               f"   {TICKET_TYPES['vip_table']['az']['desc']}\n\n"
               f"4. {TICKET_TYPES['exclusive']['az']['name']} - {TICKET_TYPES['exclusive']['az']['price']}\n"
               f"   {TICKET_TYPES['exclusive']['az']['desc']}\n\n"
+              "*Diqqət:* Biletlər geri qaytarılmır və dəyişdirilmir.\n"
               "Bilet növünü seçin:",
         "en": "🎟 Available tickets:\n\n"
               f"1. {TICKET_TYPES['standard']['en']['name']} - {TICKET_TYPES['standard']['en']['price']}\n"
@@ -445,6 +462,7 @@ async def tickets_menu_handler(message: types.Message):
               f"   {TICKET_TYPES['vip_table']['en']['desc']}\n\n"
               f"4. {TICKET_TYPES['exclusive']['en']['name']} - {TICKET_TYPES['exclusive']['en']['price']}\n"
               f"   {TICKET_TYPES['exclusive']['en']['desc']}\n\n"
+              "*Please note:* Tickets are non-refundable and non-exchangeable.\n"
               "Select ticket type:"
     }[lang]
     
@@ -494,7 +512,6 @@ async def ticket_type_handler(message: types.Message):
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
 async def get_name(message: types.Message):
     try:
-        # First check if user is in the purchase flow
         if message.from_user.id not in user_data:
             lang = user_lang.get(message.from_user.id, "en")
             await message.answer(
@@ -505,7 +522,6 @@ async def get_name(message: types.Message):
             )
             return
 
-        # Validate name input (at least 2 words for name+surname)
         if len(message.text.split()) < 2:
             lang = user_data[message.from_user.id].get("lang", "en")
             error_msg = {
@@ -516,7 +532,6 @@ async def get_name(message: types.Message):
             await message.answer(error_msg)
             return
 
-        # Store the name and move to next step
         user_data[message.from_user.id]["name"] = message.text
         user_data[message.from_user.id]["step"] = "phone"
         lang = user_data[message.from_user.id].get("lang", "en")
@@ -540,6 +555,7 @@ async def get_name(message: types.Message):
         await message.answer(error_msg, reply_markup=get_menu_keyboard(lang))
         if message.from_user.id in user_data:
             del user_data[message.from_user.id]
+
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "phone")
 async def get_phone(message: types.Message):
     try:
@@ -551,7 +567,6 @@ async def get_phone(message: types.Message):
             return
 
         phone = message.text
-        # Basic phone number validation
         if not phone.replace('+', '').isdigit() or len(phone.replace('+', '')) < 9:
             lang = user_data[message.from_user.id].get("lang", "en")
             error_msg = {
@@ -575,18 +590,21 @@ async def get_phone(message: types.Message):
                   f"💳 Сумма: {ticket_info['price']}\n"
                   f"👤 Имя: {user_data[message.from_user.id]['name']}\n"
                   f"📱 Телефон: {phone}\n\n"
+                  f"*Билеты не подлежат возврату и обмену*\n"
                   f"Все верно?",
             "az": f"Məlumatlarınızı yoxlayın:\n\n"
                   f"🎟 Bilet növü: {ticket_info['name']}\n"
                   f"💳 Məbləğ: {ticket_info['price']}\n"
                   f"👤 Ad: {user_data[message.from_user.id]['name']}\n"
                   f"📱 Telefon: {phone}\n\n"
+                  f"*Biletlər geri qaytarılmır və dəyişdirilmir*\n"
                   f"Hər şey düzgündür?",
             "en": f"Please confirm your details:\n\n"
                   f"🎟 Ticket type: {ticket_info['name']}\n"
                   f"💳 Amount: {ticket_info['price']}\n"
                   f"👤 Name: {user_data[message.from_user.id]['name']}\n"
                   f"📱 Phone: {phone}\n\n"
+                  f"*Tickets are non-refundable and non-exchangeable*\n"
                   f"Is everything correct?"
         }[lang]
         
@@ -625,11 +643,14 @@ async def confirm_purchase(message: types.Message):
     
     payment_info = {
         "ru": f"Оплатите {user_data[message.from_user.id]['ticket_price']} на карту: `{PAYMENT_CARD}`\n"
-              "и отправьте скриншот оплаты.",
+              "и отправьте скриншот оплаты.\n\n"
+              "*Обратите внимание:* Билеты не подлежат возврату и обмену.",
         "az": f"{user_data[message.from_user.id]['ticket_price']} məbləğini kartla ödəyin: `{PAYMENT_CARD}`\n"
-              "və ödəniş skrinşotu göndərin.",
+              "və ödəniş skrinşotu göndərin.\n\n"
+              "*Diqqət:* Biletlər geri qaytarılmır və dəyişdirilmir.",
         "en": f"Please pay {user_data[message.from_user.id]['ticket_price']} to card: `{PAYMENT_CARD}`\n"
-              "and send payment screenshot."
+              "and send payment screenshot.\n\n"
+              "*Please note:* Tickets are non-refundable and non-exchangeable."
     }[lang]
     
     await message.answer(payment_info, reply_markup=get_menu_keyboard(lang))
@@ -654,267 +675,96 @@ async def handle_payment(message: types.Message):
     
     if message.photo:
         try:
+            # Get the highest resolution photo
             photo = message.photo[-1]
             file = await bot.get_file(photo.file_id)
+            
+            # Create payment screenshot directory if not exists
+            os.makedirs(PHOTOS_DIR, exist_ok=True)
+            
+            # Save the photo
             path = f"{PHOTOS_DIR}/{message.from_user.id}_{photo.file_id}.jpg"
             await bot.download_file(file.file_path, path)
             
+            # Generate unique ticket number
+            ticket_number = generate_ticket_number()
+            
+            # Save all data to Excel
             if save_to_excel(
-                message.from_user.id,
-                user_data[message.from_user.id]["name"],
-                user_data[message.from_user.id]["phone"],
-                user_data[message.from_user.id]["ticket_type"],
-                user_data[message.from_user.id]["ticket_price"],
-                path
+                user_id=message.from_user.id,
+                name=user_data[message.from_user.id]["name"],
+                phone=user_data[message.from_user.id]["phone"],
+                ticket_type=user_data[message.from_user.id]["ticket_type"],
+                ticket_price=user_data[message.from_user.id]["ticket_price"],
+                photo_path=path,
+                ticket_number=ticket_number
             ):
+                # Notify admin about new ticket
                 await notify_admin(
-                    message.from_user.id,
-                    user_data[message.from_user.id]["name"],
-                    user_data[message.from_user.id]["phone"],
-                    user_data[message.from_user.id]["ticket_type"],
-                    user_data[message.from_user.id]["ticket_price"]
+                    user_id=message.from_user.id,
+                    name=user_data[message.from_user.id]["name"],
+                    phone=user_data[message.from_user.id]["phone"],
+                    ticket_type=user_data[message.from_user.id]["ticket_type"],
+                    ticket_price=user_data[message.from_user.id]["ticket_price"],
+                    ticket_number=ticket_number
                 )
                 
+                # Prepare confirmation message with ticket number and no-refund policy
                 confirmation = {
-                    "ru": "Спасибо! Ваша заявка на рассмотрении.",
-                    "az": "Təşəkkürlər! Müraciətiniz nəzərdən keçirilir.",
-                    "en": "Thank you! Your application is under review."
+                    "ru": f"✅ Спасибо за покупку!\n\n"
+                          f"🎫 Номер вашего билета: {ticket_number}\n"
+                          f"📅 Дата события: 27 апреля 2025\n"
+                          f"📍 Место: Рестобар Voodoo, ТРЦ Наргиз Молл, 3 этаж\n\n"
+                          f"⚠️ Важно: Билеты не подлежат возврату и обмену. "
+                          f"Приходите вовремя и не теряйте билет!",
+                    "az": f"✅ Satın aldığınız üçün təşəkkürlər!\n\n"
+                          f"🎫 Bilet nömrəniz: {ticket_number}\n"
+                          f"📅 Tədbir tarixi: 27 Aprel 2025\n"
+                          f"📍 Yer: Voodoo Restobar, Nargiz Mall, 3-cü mərtəbə\n\n"
+                          f"⚠️ Əhəmiyyətli: Biletlər geri qaytarılmır və dəyişdirilmir. "
+                          f"Vaxtında gəlin və biletinizi itirməyin!",
+                    "en": f"✅ Thank you for your purchase!\n\n"
+                          f"🎫 Your ticket number: {ticket_number}\n"
+                          f"📅 Event date: April 27, 2025\n"
+                          f"📍 Location: Voodoo Restobar, Nargiz Mall, 3rd floor\n\n"
+                          f"⚠️ Important: Tickets are non-refundable and non-exchangeable. "
+                          f"Please arrive on time and don't lose your ticket!"
                 }[lang]
                 
+                # Send confirmation to user
                 await message.answer(confirmation, reply_markup=get_menu_keyboard(lang))
+                
+                # Clear user data after successful purchase
                 del user_data[message.from_user.id]
+            else:
+                raise Exception("Failed to save to Excel")
             
         except Exception as e:
             logger.error(f"Payment processing error: {e}")
             error_msg = {
-                "ru": "Ошибка обработки платежа, попробуйте снова",
-                "az": "Ödəniş emalı xətası, yenidən cəhd edin",
-                "en": "Payment processing error, please try again"
+                "ru": "⚠️ Произошла ошибка при обработке платежа. Пожалуйста, попробуйте отправить скриншот еще раз.",
+                "az": "⚠️ Ödəniş emal edilərkən xəta baş verdi. Zəhmət olmasa skrinşotu yenidən göndərin.",
+                "en": "⚠️ An error occurred while processing payment. Please try sending the screenshot again."
             }[lang]
             await message.answer(error_msg)
     else:
+        # If user sent something that's not a photo
         prompt = {
-            "ru": "Пожалуйста, отправьте скриншот оплаты.",
-            "az": "Zəhmət olmasa, ödəniş skrinşotu göndərin.",
-            "en": "Please send the payment screenshot."
+            "ru": "📎 Пожалуйста, отправьте скриншот оплаты в виде фото (не документом).\n"
+                  "Убедитесь, что на скриншоте виден:\n"
+                  "1. Номер карты получателя\n"
+                  "2. Сумма перевода\n"
+                  "3. Дата и время операции",
+            "az": "📎 Zəhmət olmasa ödəniş skrinşotunu foto şəklində göndərin (sənəd deyil).\n"
+                  "Skrinşotda aşağıdakıların göründüyünə əmin olun:\n"
+                  "1. Alıcı kart nömrəsi\n"
+                  "2. Köçürmə məbləği\n"
+                  "3. Əməliyyat tarixi və vaxtı",
+            "en": "📎 Please send the payment screenshot as a photo (not a document).\n"
+                  "Make sure the screenshot shows:\n"
+                  "1. Recipient card number\n"
+                  "2. Transfer amount\n"
+                  "3. Transaction date and time"
         }[lang]
+        
         await message.answer(prompt)
-
-@dp.message(Command("admin"))
-async def admin_command(message: types.Message):
-    if not is_admin(message.from_user.id):
-        await message.answer("⛔ Доступ запрещён!")
-        return
-        
-    await message.answer(
-        "🛠 *Панель администратора*",
-        reply_markup=get_admin_keyboard(),
-        parse_mode="Markdown"
-    )
-
-@dp.callback_query(F.data.startswith("admin_"))
-async def handle_admin_callbacks(callback: types.CallbackQuery):
-    if not is_admin(callback.from_user.id):
-        await callback.answer("⛔ Доступ запрещён!")
-        return
-    
-    try:
-        action = callback.data.split('_')[1]
-        
-        if action == "stats":
-            report = await generate_stats_report()
-            await callback.message.edit_text(report, reply_markup=get_admin_keyboard())
-            
-        elif action == "last_orders":
-            orders = await get_last_orders()
-            await callback.message.edit_text(orders, reply_markup=get_admin_keyboard())
-            
-        elif action == "search":
-            await callback.message.answer("Введите ID пользователя:")
-            admin_pending_actions[callback.from_user.id] = "waiting_for_id"
-            
-        elif action == "refresh":
-            await callback.message.edit_text(
-                "🛠 *Панель администратора*",
-                reply_markup=get_admin_keyboard(),
-                parse_mode="Markdown"
-            )
-            
-        await callback.answer()
-    except Exception as e:
-        logger.error(f"Admin callback error: {e}")
-        await callback.answer("⚠️ Произошла ошибка")
-        
-@dp.message(lambda m: admin_pending_actions.get(m.from_user.id) == "waiting_for_id")
-async def handle_admin_search(message: types.Message):
-    if not is_admin(message.from_user.id):
-        return
-        
-    try:
-        user_id = int(message.text)
-        wb = openpyxl.load_workbook("tickets.xlsx")
-        ws = wb.active
-        
-        found = None
-        for row in ws.iter_rows(values_only=True):
-            if row[0] == user_id:
-                found = row
-                break
-                
-        if not found:
-            await message.answer("❌ Заявка не найдена")
-        else:
-            # Translate ticket type for display
-            ticket_type = found[3]
-            if ticket_type == "vip_single":
-                ticket_type = "VIP Одиночный"
-            elif ticket_type == "vip_table":
-                ticket_type = "VIP Столик"
-            elif ticket_type == "standard":
-                ticket_type = "Стандарт"
-            elif ticket_type == "exclusive":
-                ticket_type = "Эксклюзив"
-                
-            report = (
-                f"🔍 *Найдена заявка:*\n\n"
-                f"👤 *{found[1]}*\n"
-                f"📞 `{found[2]}`\n"
-                f"🎟 {ticket_type} ({found[4]})\n"
-                f"📸 [Фото]({found[5]})\n"
-                f"🕒 {found[6]}"
-            )
-            await message.answer(report, parse_mode="Markdown")
-            
-    except ValueError:
-        await message.answer("❌ Введите числовой ID")
-    except Exception as e:
-        logger.error(f"Search error: {e}")
-        await message.answer("⚠️ Ошибка поиска")
-    finally:
-        admin_pending_actions.pop(message.from_user.id, None)
-
-@dp.message(Command("accept"))
-async def accept_request(message: types.Message):
-    if not is_admin(message.from_user.id):
-        return
-        
-    if not message.reply_to_message:
-        await message.answer("ℹ️ Ответьте на сообщение с заявкой для подтверждения")
-        return
-        
-    try:
-        text = message.reply_to_message.text
-        user_id = int(text.split("ID:")[1].split("\n")[0].strip())
-        
-        if user_id in pending_approvals:
-            pending_approvals[user_id]["approved"] = True
-            await message.answer(f"✅ Заявка {user_id} подтверждена")
-            
-            # Send approval notification to user
-            lang = user_lang.get(user_id, "en")
-            approval_msg = {
-                "ru": "🎉 Ваша заявка подтверждена! Билет активен.",
-                "az": "🎉 Müraciətiniz təsdiqləndi! Bilet aktivdir.",
-                "en": "🎉 Your application has been approved! Ticket is active."
-            }[lang]
-            
-            await bot.send_message(user_id, approval_msg)
-            
-            # Remove from pending
-            del pending_approvals[user_id]
-        else:
-            await message.answer("⚠️ Заявка не найдена в ожидающих")
-    except Exception as e:
-        logger.error(f"Accept error: {e}")
-        await message.answer("❌ Ошибка подтверждения")
-
-@dp.message(Command("reject"))
-async def reject_request(message: types.Message):
-    if not is_admin(message.from_user.id):
-        return
-        
-    if not message.reply_to_message:
-        await message.answer("ℹ️ Ответьте на сообщение с заявкой для отклонения")
-        return
-        
-    try:
-        text = message.reply_to_message.text
-        user_id = int(text.split("ID:")[1].split("\n")[0].strip())
-        reason = message.text.split("/reject")[1].strip() or "не указана"
-        
-        if user_id in pending_approvals:
-            pending_approvals[user_id]["approved"] = False
-            await message.answer(f"❌ Заявка {user_id} отклонена")
-            
-            # Send rejection notification to user
-            lang = user_lang.get(user_id, "en")
-            rejection_msg = {
-                "ru": f"⚠️ Ваша заявка отклонена. Причина: {reason}",
-                "az": f"⚠️ Müraciətiniz rədd edildi. Səbəb: {reason}",
-                "en": f"⚠️ Your application was rejected. Reason: {reason}"
-            }[lang]
-            
-            await bot.send_message(user_id, rejection_msg)
-            
-            # Remove from pending
-            del pending_approvals[user_id]
-        else:
-            await message.answer("⚠️ Заявка не найдена в ожидающих")
-    except Exception as e:
-        logger.error(f"Reject error: {e}")
-        await message.answer("❌ Ошибка отклонения")
-
-@dp.message()
-async def handle_unmatched_messages(message: types.Message):
-    if message.from_user.id == YOUR_TELEGRAM_ID:
-        await message.answer("ℹ️ Используйте /admin для управления ботом")
-    else:
-        # First check if user is in the middle of a process
-        if message.from_user.id in user_data:
-            current_step = user_data[message.from_user.id].get("step")
-            if current_step == "name":
-                await get_name(message)
-                return
-            elif current_step == "phone":
-                await get_phone(message)
-                return
-            elif current_step == "payment":
-                await handle_payment(message)
-                return
-        
-        # Default response if not in any flow
-        lang = user_lang.get(message.from_user.id, "en")
-        response = {
-            "ru": "Пожалуйста, используйте кнопки меню",
-            "az": "Zəhmət olmasa menyu düymələrindən istifadə edin",
-            "en": "Please use the menu buttons"
-        }[lang]
-        await message.answer(response, reply_markup=get_menu_keyboard(lang))
-async def run_bot():
-    await dp.start_polling(bot)
-
-async def http_handler(request):
-    return web.Response(text="🤖 Бот работает в режиме polling!")
-
-async def main():
-    # Start bot in background
-    bot_task = asyncio.create_task(run_bot())
-
-    # Configure HTTP server for Render
-    app = web.Application()
-    app.router.add_get("/", http_handler)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", PORT)
-    await site.start()
-
-    logger.info(f"🚀 Бот запущен на порту {PORT}")
-    await asyncio.Event().wait()
-
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Бот остановлен")
-    except Exception as e:
-        logger.critical(f"Фатальная ошибка: {e}")
