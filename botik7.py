@@ -9,17 +9,19 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiohttp import web
 
 # ===== CONFIGURATION =====
-TOKEN = "7883966462:AAG2udLydnyXDibLWyw8WrlVntzUB-KMXfE"  # Your token hardcoded
-ADMIN_ID = 1291104906  # Your Telegram ID
-PAYMENT_CARD = "4169 7388 9268 3164"  # Your payment card
-PORT = 10001  # Your specified port
+# Use environment variables instead of hardcoding!
+TOKEN = os.getenv('TELEGRAM_TOKEN', '7883966462:AAG2udLydnyXDibLWyw8WrlVntzUB-KMXfE')
+ADMIN_ID = int(os.getenv('ADMIN_ID', '1291104906'))
+PAYMENT_CARD = os.getenv('PAYMENT_CARD', '4169 7388 9268 3164')
+PORT = int(os.getenv('PORT', '8080'))  # Added PORT definition
 
-# Initialize bot with correct properties
+# Initialize bot
 bot = Bot(
     token=TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)  # Correct way to set parse_mode
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 dp = Dispatcher()
 
@@ -319,13 +321,20 @@ async def reject_order(message: types.Message):
 
 # ===== RUN BOT =====
 async def main():
-    """Main bot startup function"""
     try:
+        print("🤖 Starting bot...")
+        
+        # Start web server in background
+        asyncio.create_task(run_web_app())
+        
+        # Start bot polling
+        print("🤖 Bot starting in polling mode...")
         await dp.start_polling(bot)
+        
     except Exception as e:
-        print(f"Bot failed with error: {e}")
+        print(f"❌ Bot failed: {e}")
     finally:
         await bot.session.close()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())
