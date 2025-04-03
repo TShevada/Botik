@@ -90,7 +90,6 @@ def get_ticket_type_keyboard(lang):
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
 # Ticket Types with Payment Notes
-# Ticket Types with Payment Notes (Complete Version)
 TICKET_TYPES = {
     "standard": {
         "az": {
@@ -233,6 +232,7 @@ TICKET_TYPES = {
         }
     }
 }
+
 # Handlers
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
@@ -251,7 +251,7 @@ async def set_language(message: types.Message):
         "Dil seçildi: Azərbaycan" if lang_map[message.text] == "az" else
         "Language set: English",
         reply_markup=get_menu_keyboard(lang_map[message.text])
-)
+    )
 
 @dp.message(F.text.in_(["🎫 Билеты", "🎫 Biletlər", "🎫 Tickets"]))
 async def tickets_menu_handler(message: types.Message):
@@ -263,17 +263,28 @@ async def tickets_menu_handler(message: types.Message):
         reply_markup=get_ticket_type_keyboard(lang)
     )
 
+async def back_handler(message: types.Message):
+    lang = user_lang.get(message.from_user.id, "en")
+    await message.answer(
+        "Главное меню" if lang == "ru" else
+        "Əsas menyu" if lang == "az" else
+        "Main menu",
+        reply_markup=get_menu_keyboard(lang)
+    )
+
+@dp.message(F.text.in_(["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]))
+async def handle_back(message: types.Message):
+    await back_handler(message)
+
 @dp.message(F.text)
 async def handle_ticket_selection(message: types.Message):
+    # Check if user is in the middle of a process
     if message.from_user.id in user_data and user_data[message.from_user.id].get("step") in ["name", "phone", "confirm"]:
         return
         
     lang = user_lang.get(message.from_user.id, "en")
     
-    if message.text in ["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]:
-        await back_handler(message)
-        return
-    
+    # Check if this is a ticket type selection
     selected_ticket = None
     for ticket_type, data in TICKET_TYPES.items():
         if message.text == data[lang]["name"]:
@@ -281,13 +292,10 @@ async def handle_ticket_selection(message: types.Message):
             break
     
     if not selected_ticket:
-        await message.answer(
-            "Неверный тип билета" if lang == "ru" else
-            "Yanlış bilet növü" if lang == "az" else
-            "Invalid ticket type"
-        )
+        # Not a ticket selection, ignore
         return
     
+    # Process ticket selection
     await message.answer(TICKET_TYPES[selected_ticket][lang]["full_info"])
     
     user_data[message.from_user.id] = {
@@ -306,6 +314,15 @@ async def handle_ticket_selection(message: types.Message):
 
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
 async def get_name(message: types.Message):
+    if not message.text or len(message.text) < 2:
+        lang = user_data[message.from_user.id].get("lang", "en")
+        await message.answer(
+            "Введите корректное имя (минимум 2 символа)" if lang == "ru" else
+            "Düzgün ad daxil edin (minimum 2 simvol)" if lang == "az" else
+            "Enter valid name (min 2 characters)"
+        )
+        return
+        
     user_data[message.from_user.id]["name"] = message.text
     user_data[message.from_user.id]["step"] = "phone"
     lang = user_data[message.from_user.id].get("lang", "en")
@@ -363,6 +380,18 @@ async def confirm_purchase(message: types.Message):
         reply_markup=get_menu_keyboard(lang)
     )
 
+@dp.message(F.text.in_(["❌ Нет", "❌ Xeyr", "❌ No"]))
+async def cancel_purchase(message: types.Message):
+    if message.from_user.id in user_data:
+        lang = user_data[message.from_user.id].get("lang", "en")
+        del user_data[message.from_user.id]
+        await message.answer(
+            "Покупка отменена" if lang == "ru" else
+            "Alış etmək ləğv edildi" if lang == "az" else
+            "Purchase canceled",
+            reply_markup=get_menu_keyboard(lang)
+        )
+
 @dp.message(F.photo, lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
 async def handle_payment_photo(message: types.Message):
     lang = user_data[message.from_user.id].get("lang", "en")
@@ -372,7 +401,8 @@ async def handle_payment_photo(message: types.Message):
             **user_data[message.from_user.id],
             "photo_id": message.photo[-1].file_id,
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "ticket_id": ticket_id
+            "ticket_id": ticket_id,
+            "username": message.from_user.username or "N/A"
         }
         
         # Notify admin
@@ -382,10 +412,11 @@ async def handle_payment_photo(message: types.Message):
             message.photo[-1].file_id,
             caption=(
                 f"🆕 Новая заявка #{ticket_id}\n\n"
-                f"👤 [ID:{message.from_user.id}] {user_data[message.from_user.id]['name']}\n"
-                f"📱 {user_data[message.from_user.id]['phone']}\n"
-                f"🎟 {ticket_name} ({user_data[message.from_user.id]['ticket_price']})\n\n"
-                f"Для обработки ответьте:\n"
+                f"👤 Пользователь: @{pending_approvals[message.from_user.id]['username']} [ID:{message.from_user.id}]\n"
+                f"📝 Имя: {user_data[message.from_user.id]['name']}\n"
+                f"📱 Телефон: {user_data[message.from_user.id]['phone']}\n"
+                f"🎟 Тип: {ticket_name} ({user_data[message.from_user.id]['ticket_price']})\n\n"
+                f"Для обработки используйте команды:\n"
                 f"/approve_{message.from_user.id} - подтвердить\n"
                 f"/reject_{message.from_user.id} [причина] - отклонить"
             )
@@ -406,14 +437,73 @@ async def handle_payment_photo(message: types.Message):
             "Payment processing error"
         )
 
-@dp.message(Command(commands=["approve", "reject"]))
+@dp.message(Command("admin"))
+async def admin_panel(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return
+    
+    text = "🛠 Админ панель\n\n"
+    text += f"⏳ Ожидают подтверждения: {len(pending_approvals)}\n"
+    text += f"✅ Подтвержденных билетов: {sum(len(v) for v in approved_tickets.values())}\n\n"
+    text += "Команды:\n"
+    text += "/pending - список ожидающих заявок\n"
+    text += "/approved - список подтвержденных билетов"
+    
+    await message.answer(text)
+
+@dp.message(Command("pending"))
+async def show_pending(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return
+    
+    if not pending_approvals:
+        await message.answer("⏳ Нет заявок на рассмотрении")
+        return
+    
+    text = "⏳ Заявки на рассмотрении:\n\n"
+    for user_id, data in pending_approvals.items():
+        ticket_name = TICKET_TYPES[data["ticket_type"]]["ru"]["name"]
+        text += (
+            f"🆔 #{data['ticket_id']}\n"
+            f"👤 @{data['username']} [ID:{user_id}]\n"
+            f"📝 {data['name']} | 📱 {data['phone']}\n"
+            f"🎟 {ticket_name} ({data['ticket_price']})\n"
+            f"🕒 {data['date']}\n"
+            f"🔹 /approve_{user_id} | /reject_{user_id} [причина]\n\n"
+        )
+    
+    await message.answer(text)
+
+@dp.message(Command("approved"))
+async def show_approved(message: types.Message):
+    if not is_admin(message.from_user.id):
+        return
+    
+    if not approved_tickets:
+        await message.answer("✅ Нет подтвержденных билетов")
+        return
+    
+    text = "✅ Подтвержденные билеты:\n\n"
+    for user_id, tickets in approved_tickets.items():
+        for ticket in tickets:
+            ticket_name = TICKET_TYPES[ticket["ticket_type"]]["ru"]["name"]
+            text += (
+                f"🆔 #{ticket['ticket_id']}\n"
+                f"👤 ID:{user_id}\n"
+                f"🎟 {ticket_name}\n"
+                f"🕒 {ticket['date']}\n\n"
+            )
+    
+    await message.answer(text)
+
+@dp.message(Command(commands_startswith=["approve_", "reject_"]))
 async def handle_admin_approval(message: types.Message):
     if not is_admin(message.from_user.id):
         return
     
     try:
-        command, user_id = message.text.split('_')
-        user_id = int(user_id.split()[0])
+        command = message.text.split('_')[0]
+        user_id = int(message.text.split('_')[1].split()[0])
         data = pending_approvals.get(user_id)
         
         if not data:
@@ -426,29 +516,59 @@ async def handle_admin_approval(message: types.Message):
                 "ticket_type": data["ticket_type"],
                 "date": data["date"]
             })
+            
+            # Notify user
+            lang = data["lang"]
+            ticket_name = TICKET_TYPES[data["ticket_type"]][lang]["name"]
             await bot.send_message(
                 user_id,
-                "✅ Ваш билет подтвержден!" if data["lang"] == "ru" else
-                "✅ Biletiniz təsdiqləndi!" if data["lang"] == "az" else
-                "✅ Your ticket is approved!"
+                f"✅ Ваш билет подтвержден!\n\n"
+                f"🎟 {ticket_name}\n"
+                f"🆔 Номер билета: #{data['ticket_id']}\n\n"
+                f"Сохраните этот номер для входа на мероприятие." if lang == "ru" else
+                f"✅ Biletiniz təsdiqləndi!\n\n"
+                f"🎟 {ticket_name}\n"
+                f"🆔 Bilet nömrəsi: #{data['ticket_id']}\n\n"
+                f"Tədbirə giriş üçün bu nömrəni saxlayın." if lang == "az" else
+                f"✅ Your ticket is approved!\n\n"
+                f"🎟 {ticket_name}\n"
+                f"🆔 Ticket ID: #{data['ticket_id']}\n\n"
+                f"Save this number for event entry."
             )
+            
             await message.answer(f"✅ Заявка #{data['ticket_id']} подтверждена")
             
         elif command == "/reject":
-            reason = message.text.split(maxsplit=2)[2] if len(message.text.split()) > 2 else "Не указана"
+            reason = message.text.split(maxsplit=2)[2] if len(message.text.split()) > 2 else (
+                "Причина не указана" if data["lang"] == "ru" else
+                "Səbəb göstərilməyib" if data["lang"] == "az" else
+                "No reason provided"
+            )
+            
+            # Notify user
+            lang = data["lang"]
             await bot.send_message(
                 user_id,
-                f"❌ Заявка отклонена. Причина: {reason}" if data["lang"] == "ru" else
-                f"❌ Müraciət rədd edildi. Səbəb: {reason}" if data["lang"] == "az" else
-                f"❌ Application rejected. Reason: {reason}"
+                f"❌ Ваша заявка отклонена\n\n"
+                f"Причина: {reason}\n\n"
+                f"Если вы считаете это ошибкой, свяжитесь с администратором." if lang == "ru" else
+                f"❌ Müraciətiniz rədd edildi\n\n"
+                f"Səbəb: {reason}\n\n"
+                f"Əgər səhv olduğunu düşünürsünüzsə, administratorla əlaqə saxlayın." if lang == "az" else
+                f"❌ Your application was rejected\n\n"
+                f"Reason: {reason}\n\n"
+                f"If you think this is a mistake, please contact admin."
             )
-            await message.answer(f"❌ Заявка #{data['ticket_id']} отклонена")
+            
+            await message.answer(f"❌ Заявка #{data['ticket_id']} отклонена. Причина: {reason}")
         
         del pending_approvals[user_id]
         
     except Exception as e:
         logger.error(f"Admin error: {e}")
-        await message.answer("⚠️ Ошибка команды")
+        await message.answer("⚠️ Ошибка команды. Формат:\n"
+                           "/approve_12345 - подтвердить\n"
+                           "/reject_12345 причина - отклонить")
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
