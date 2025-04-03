@@ -494,11 +494,26 @@ async def ticket_type_handler(message: types.Message):
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
 async def get_name(message: types.Message):
     try:
+        # First check if user is in the purchase flow
         if message.from_user.id not in user_data:
             lang = user_lang.get(message.from_user.id, "en")
-            await message.answer("Пожалуйста, выберите тип билета сначала" if lang == "ru" else 
-                                "Zəhmət olmasa, əvvəlcə bilet növünü seçin" if lang == "az" else 
-                                "Please select ticket type first")
+            await message.answer(
+                "Пожалуйста, выберите тип билета сначала" if lang == "ru" else
+                "Zəhmət olmasa, əvvəlcə bilet növünü seçin" if lang == "az" else
+                "Please select ticket type first",
+                reply_markup=get_menu_keyboard(lang)
+            )
+            return
+
+        # Validate name input (at least 2 words for name+surname)
+        if len(message.text.split()) < 2:
+            lang = user_data[message.from_user.id].get("lang", "en")
+            error_msg = {
+                "ru": "Пожалуйста, введите имя и фамилию",
+                "az": "Zəhmət olmasa, ad və soyadınızı daxil edin",
+                "en": "Please enter both first and last name"
+            }[lang]
+            await message.answer(error_msg)
             return
 
         # Store the name and move to next step
@@ -513,6 +528,7 @@ async def get_name(message: types.Message):
         }[lang]
         
         await message.answer(prompt)
+        
     except Exception as e:
         logger.error(f"Error in get_name handler: {e}")
         lang = user_lang.get(message.from_user.id, "en")
@@ -524,7 +540,6 @@ async def get_name(message: types.Message):
         await message.answer(error_msg, reply_markup=get_menu_keyboard(lang))
         if message.from_user.id in user_data:
             del user_data[message.from_user.id]
-
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "phone")
 async def get_phone(message: types.Message):
     try:
