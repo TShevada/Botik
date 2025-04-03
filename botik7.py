@@ -869,9 +869,7 @@ async def handle_unmatched_messages(message: types.Message):
     if message.from_user.id == YOUR_TELEGRAM_ID:
         await message.answer("ℹ️ Используйте /admin для управления ботом")
     else:
-        lang = user_lang.get(message.from_user.id, "en")
-        
-        # Check if user is in the middle of a process
+        # First check if user is in the middle of a process
         if message.from_user.id in user_data:
             current_step = user_data[message.from_user.id].get("step")
             if current_step == "name":
@@ -884,14 +882,14 @@ async def handle_unmatched_messages(message: types.Message):
                 await handle_payment(message)
                 return
         
-        # Default response
+        # Default response if not in any flow
+        lang = user_lang.get(message.from_user.id, "en")
         response = {
             "ru": "Пожалуйста, используйте кнопки меню",
             "az": "Zəhmət olmasa menyu düymələrindən istifadə edin",
             "en": "Please use the menu buttons"
         }[lang]
         await message.answer(response, reply_markup=get_menu_keyboard(lang))
-
 async def run_bot():
     await dp.start_polling(bot)
 
