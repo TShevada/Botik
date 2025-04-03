@@ -21,7 +21,8 @@ PAYMENT_CARD = "4169 7388 9268 3164"
 # Constants
 PHOTOS_DIR = "payment_screenshots"
 WELCOME_BANNER = "welcome_banner.jpg"
-PORT = 10000
+PORT = 10001  # Hardcoded port
+site = web.TCPSite(runner, "0.0.0.0", PORT)  # Bind to port 10001
 TICKET_PREFIX = "#KT"
 
 # Setup
