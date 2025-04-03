@@ -1,48 +1,56 @@
 import os
 import logging
-import asyncio
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.context import FSMContext
 
-# ===== CONFIG =====
-TOKEN = os.getenv("TELEGRAM_TOKEN", "DEFAULT_TOKEN")
-YOUR_TELEGRAM_ID = int(os.getenv("ADMIN_TELEGRAM_ID", "123456789"))
-PORT = int(os.getenv("PORT", 10001))  # Using your requested port
-# ==================
+# --- CONFIG ---
+TOKEN = os.getenv("TELEGRAM_TOKEN", "YOUR_BOT_TOKEN")
+PORT = 10001
+logging.basicConfig(level=logging.INFO)
 
-# Initialize bot
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
-logging.basicConfig(level=logging.INFO)
-user_lang = {}
 
-# Updated Ticket Data (RU/AZ/EN)
+# --- STATES ---
+class Form(StatesGroup):
+    name = State()
+    phone = State()
+    photo = State()
+
+# --- TICKET DATA ---
 TICKET_TYPES = {
     "standard": {
-        "ru": {"name": "Стандарт", "price": "20 АЗН", "desc": "Приветственные коктейли, Fan Zone"},
-        "az": {"name": "Standart", "price": "20 AZN", "desc": "Xoş gəlmisiniz kokteylləri, Fan Zone"},
-        "en": {"name": "Standard", "price": "20 AZN", "desc": "Welcome cocktails, Fan Zone"}
+        "ru": ["Стандарт (20 АЗН)", "Приветственные коктейли, Fan Zone"],
+        "az": ["Standart (20 AZN)", "Xoş gəlmisiniz kokteylləri, Fan Zone"],
+        "en": ["Standard (20 AZN)", "Welcome cocktails, Fan Zone"]
     },
     "vip_single": {
-        "ru": {"name": "VIP (Одиночный)", "price": "40 АЗН", "desc": "Индивидуальное место за столиком, Приветственный коктейль"},
-        "az": {"name": "VIP (Tək)", "price": "40 AZN", "desc": "Fərdi oturacaq yeri, Xoş gəlmisiniz kokteyli"},
-        "en": {"name": "VIP (Single)", "price": "40 AZN", "desc": "Individual seating, Welcome cocktail"}
+        "ru": ["VIP Одиночный (40 АЗН)", "Индивидуальное место, Коктейль"],
+        "az": ["VIP Tək (40 AZN)", "Fərdi oturacaq, Kokteyl"],
+        "en": ["VIP Single (40 AZN)", "Individual seat, Cocktail"]
     },
     "vip_table": {
-        "ru": {"name": "VIP (Столик)", "price": "160 АЗН", "desc": "Отдельный столик на 4 человек, Приветственные коктейли"},
-        "az": {"name": "VIP (Masalıq)", "price": "160 AZN", "desc": "4 nəfərlik masa, Xoş gəlmisiniz kokteylləri"},
-        "en": {"name": "VIP (Table)", "price": "160 AZN", "desc": "Private table for 4, Welcome cocktails"}
+        "ru": ["VIP Столик (160 АЗН)", "Стол на 4, Коктейли"],
+        "az": ["VIP Masa (160 AZN)", "4 nəfərlik masa, Kokteyllər"],
+        "en": ["VIP Table (160 AZN)", "Table for 4, Cocktails"]
     },
-    "exclusive": {
-        "ru": {"name": "Exclusive (Столик)", "price": "240 АЗН", "desc": "Доступ за DJ столом, Столик на 4 человек, Коктейли"},
-        "az": {"name": "Exclusive (Masalıq)", "price": "240 AZN", "desc": "DJ masasına giriş, 4 nəfərlik masa, Kokteyllər"},
-        "en": {"name": "Exclusive (Table)", "price": "240 AZN", "desc": "Access behind DJ booth, Table for 4, Cocktails"}
+    "exclusive_single": {
+        "ru": ["Exclusive Одиночный (60 АЗН)", "Доступ к DJ, Место"],
+        "az": ["Exclusive Tək (60 AZN)", "DJ girişi, Oturacaq"],
+        "en": ["Exclusive Single (60 AZN)", "DJ access, Seat"]
+    },
+    "exclusive_table": {
+        "ru": ["Exclusive Столик (240 АЗН)", "VIP зона, Стол на 4"],
+        "az": ["Exclusive Masa (240 AZN)", "VIP zona, 4 nəfərlik masa"],
+        "en": ["Exclusive Table (240 AZN)", "VIP area, Table for 4"]
     }
 }
 
-# Keyboard Generators
+# --- KEYBOARDS ---
 def get_lang_keyboard():
     return ReplyKeyboardMarkup(
         keyboard=[
@@ -53,51 +61,106 @@ def get_lang_keyboard():
     )
 
 def get_ticket_keyboard(lang):
-    buttons = [
-        [KeyboardButton(text=f"{TICKET_TYPES['standard'][lang]['name']} ({TICKET_TYPES['standard'][lang]['price']})")],
-        [KeyboardButton(text=f"{TICKET_TYPES['vip_single'][lang]['name']} ({TICKET_TYPES['vip_single'][lang]['price']})")],
-        [KeyboardButton(text=f"{TICKET_TYPES['vip_table'][lang]['name']} ({TICKET_TYPES['vip_table'][lang]['price']})")],
-        [KeyboardButton(text=f"{TICKET_TYPES['exclusive'][lang]['name']} ({TICKET_TYPES['exclusive'][lang]['price']})")],
-        [KeyboardButton(text="⬅️ Назад" if lang == "ru" else "⬅️ Geri" if lang == "az" else "⬅️ Back")]
-    ]
+    buttons = []
+    for ticket_type in TICKET_TYPES:
+        buttons.append([KeyboardButton(text=TICKET_TYPES[ticket_type][lang][0])])
+    buttons.append([KeyboardButton(
+        text="⬅️ Назад" if lang == "ru" else "⬅️ Geri" if lang == "az" else "⬅️ Back"
+    )])
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
-# Handlers
+# --- HANDLERS ---
 @dp.message(Command("start"))
-async def start_cmd(message: types.Message):
-    await message.answer("Выберите язык / Select language / Dil seçin:", reply_markup=get_lang_keyboard())
+async def start(message: types.Message, state: FSMContext):
+    await state.clear()
+    await message.answer("Выберите язык / Dil seçin / Select language:", 
+                        reply_markup=get_lang_keyboard())
 
 @dp.message(F.text.in_(["🇷🇺 Русский", "🇦🇿 Azərbaycan", "🇬🇧 English"]))
-async def set_language(message: types.Message):
-    lang_map = {"🇷🇺 Русский": "ru", "🇦🇿 Azərbaycan": "az", "🇬🇧 English": "en"}
-    user_lang[message.from_user.id] = lang = lang_map[message.text]
+async def set_language(message: types.Message, state: FSMContext):
+    lang = "ru" if "🇷🇺" in message.text else "az" if "🇦🇿" in message.text else "en"
+    await state.update_data(lang=lang)
+    await message.answer(
+        "Введите ваше имя и фамилию:" if lang == "ru" else 
+        "Ad və soyadınızı daxil edin:" if lang == "az" else 
+        "Enter your full name:",
+        reply_markup=types.ReplyKeyboardRemove()
+    )
+    await state.set_state(Form.name)
+
+@dp.message(Form.name)
+async def process_name(message: types.Message, state: FSMContext):
+    await state.update_data(name=message.text)
+    data = await state.get_data()
+    lang = data.get('lang', 'en')
+    
+    await message.answer(
+        "Введите ваш номер телефона:" if lang == "ru" else
+        "Telefon nömrənizi daxil edin:" if lang == "az" else
+        "Enter your phone number:"
+    )
+    await state.set_state(Form.phone)
+
+@dp.message(Form.phone)
+async def process_phone(message: types.Message, state: FSMContext):
+    if not message.text.replace('+', '').isdigit():
+        data = await state.get_data()
+        lang = data.get('lang', 'en')
+        await message.answer(
+            "Неверный номер. Попробуйте еще раз:" if lang == "ru" else
+            "Yanlış nömrə. Yenidən cəhd edin:" if lang == "az" else
+            "Invalid number. Try again:"
+        )
+        return
+    
+    await state.update_data(phone=message.text)
+    data = await state.get_data()
+    lang = data.get('lang', 'en')
+    
     await message.answer(
         "Выберите билет:" if lang == "ru" else "Bilet seçin:" if lang == "az" else "Select ticket:",
         reply_markup=get_ticket_keyboard(lang)
     )
+    await state.set_state(Form.photo)
 
-@dp.message(F.text.regexp(r"(Стандарт|Standart|Standard|VIP.*|Exclusive)"))
-async def show_ticket_info(message: types.Message):
-    lang = user_lang.get(message.from_user.id, "en")
-    ticket_type = None
+@dp.message(Form.photo)
+async def process_ticket(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    lang = data.get('lang', 'en')
     
-    if "Стандарт" in message.text or "Standart" in message.text or "Standard" in message.text:
-        ticket_type = "standard"
-    elif "Одиночный" in message.text or "Tək" in message.text or "Single" in message.text:
-        ticket_type = "vip_single"
-    elif "Столик" in message.text or "Masalıq" in message.text or "Table" in message.text:
-        ticket_type = "vip_table" if "240" not in message.text else "exclusive"
-    
-    if ticket_type:
+    # Check if message is a photo
+    if message.photo:
         await message.answer(
-            f"🎟 {TICKET_TYPES[ticket_type][lang]['name']}\n"
-            f"💵 {TICKET_TYPES[ticket_type][lang]['price']}\n"
-            f"📝 {TICKET_TYPES[ticket_type][lang]['desc']}\n\n"
-            f"❗️ {'Билеты не подлежат возврату!' if lang == 'ru' else 'Biletlər geri qaytarılmır!' if lang == 'az' else 'Tickets are non-refundable!'}"
+            "Спасибо! Ваша заявка принята." if lang == "ru" else
+            "Təşəkkürlər! Müraciətiniz qəbul edildi." if lang == "az" else
+            "Thank you! Your application has been received."
         )
+        await state.clear()
+        return
+    
+    # Handle ticket selection
+    for ticket_type in TICKET_TYPES:
+        if TICKET_TYPES[ticket_type][lang][0] in message.text:
+            await state.update_data(ticket_type=ticket_type)
+            await message.answer(
+                "Отправьте фото оплаты:" if lang == "ru" else
+                "Ödəniş şəklini göndərin:" if lang == "az" else
+                "Send payment photo:",
+                reply_markup=types.ReplyKeyboardRemove()
+            )
+            return
+    
+    await message.answer(
+        "Выберите билет из списка:" if lang == "ru" else
+        "Siyahıdan bilet seçin:" if lang == "az" else
+        "Select ticket from the list:",
+        reply_markup=get_ticket_keyboard(lang)
+    )
 
+# --- RUN ---
 async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    import asyncio
     asyncio.run(main())
