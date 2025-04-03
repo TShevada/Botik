@@ -1,13 +1,9 @@
-from dotenv import load_dotenv
-load_dotenv()  # Load .env locally (ignored on Render)
+import os
+from aiogram import Bot
 
-# ===== FAILSAFE CONFIG =====
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+# Get token - THIS IS MANDATORY
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # ← Correct syntax
 if not TOKEN:
-    raise ValueError("❌ TELEGRAM_BOT_TOKEN not found in environment variables!")
+    raise RuntimeError("Telegram token missing!")
 
-ADMIN_ID = int(os.getenv("ADMIN_ID", "1291104906"))  # Fallback to your ID
-PORT = int(os.getenv("PORT", "10001"))  # Render-compatible default
-
-# Initialize bot with token validation
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+bot = Bot(token=TOKEN)  # ← Token used here
