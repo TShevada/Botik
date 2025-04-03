@@ -313,33 +313,34 @@ async def tickets_menu_handler(message: types.Message):
     )
 
 @dp.message(F.text)
-async def ticket_type_handler(message: types.Message):
+async def handle_ticket_selection(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     
-    # Find which ticket type was selected
-    ticket_type = None
-    for t_type, t_data in TICKET_TYPES.items():
-        if message.text == t_data[lang]["name"]:
-            ticket_type = t_type
+    # First check if it's a back command
+    if message.text in ["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]:
+        await back_handler(message)
+        return
+    
+    # Check which ticket type was selected
+    selected_ticket = None
+    for ticket_type, data in TICKET_TYPES.items():
+        if message.text == data[lang]["name"]:
+            selected_ticket = ticket_type
             break
     
-    if not ticket_type:
-        # Check if it's a back command
-        if message.text in ["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]:
-            await back_handler(message)
-            return
+    if not selected_ticket:
         await message.answer("Неверный тип билета" if lang == "ru" else "Yanlış bilet növü" if lang == "az" else "Invalid ticket type")
         return
     
-    # Send full ticket info exactly as requested
-    await message.answer(TICKET_TYPES[ticket_type][lang]["full_info"])
+    # Show full ticket info
+    await message.answer(TICKET_TYPES[selected_ticket][lang]["full_info"])
     
-    # Store user data for purchase flow
+    # Store selection for purchase flow
     user_data[message.from_user.id] = {
         "step": "name",
         "lang": lang,
-        "ticket_type": ticket_type,
-        "ticket_price": TICKET_TYPES[ticket_type][lang]["name"].split("—")[1].strip()
+        "ticket_type": selected_ticket,
+        "ticket_price": TICKET_TYPES[selected_ticket][lang]["name"].split("—")[1].strip()
     }
     
     prompt = {
@@ -349,7 +350,7 @@ async def ticket_type_handler(message: types.Message):
     }[lang]
     
     await message.answer(prompt, reply_markup=types.ReplyKeyboardRemove())
-
+    
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
 async def get_name(message: types.Message):
     user_data[message.from_user.id]["name"] = message.text
