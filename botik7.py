@@ -16,10 +16,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ===== CONFIGURATION =====
-TOKEN = os.getenv('7501232713:AAEQG8REnPf83FqVkVqus-ZnJBKDnSt9Qvo')
-ADMIN_ID = int(os.getenv('1291104906'))
-PAYMENT_CARD = os.getenv('4169 7388 9268 3164')
-PORT = int(os.getenv('PORT', '10001'))  # Render-compatible port
+TOKEN = os.getenv('7501232713:AAEQG8REnPf83FqVkVqus-ZnJBKDnSt9Qvo')  # Get from environment variable
+ADMIN_ID = int(os.getenv('ADMIN_ID', '1291104906'))  # Fallback to your ID if not set
+PAYMENT_CARD = os.getenv("4169 7388 9268 3164")  # Get from environment variable
+PORT = int(os.getenv('PORT', '10001'))  # Fallback to 10001 if not set
 
 # Initialize bot
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
