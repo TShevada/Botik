@@ -277,9 +277,10 @@ async def handle_back(message: types.Message):
     await back_handler(message)
 
 @dp.message(F.text)
-async def handle_ticket_selection(message: types.Message):
+async def handle_text_messages(message: types.Message):
     # Check if user is in the middle of a process
     if message.from_user.id in user_data and user_data[message.from_user.id].get("step") in ["name", "phone", "confirm"]:
+        # Let the specific handlers deal with these cases
         return
         
     lang = user_lang.get(message.from_user.id, "en")
@@ -291,26 +292,44 @@ async def handle_ticket_selection(message: types.Message):
             selected_ticket = ticket_type
             break
     
-    if not selected_ticket:
-        # Not a ticket selection, ignore
-        return
-    
-    # Process ticket selection
-    await message.answer(TICKET_TYPES[selected_ticket][lang]["full_info"])
-    
-    user_data[message.from_user.id] = {
-        "step": "name",
-        "lang": lang,
-        "ticket_type": selected_ticket,
-        "ticket_price": TICKET_TYPES[selected_ticket][lang]["name"].split("—")[1].strip()
-    }
-    
-    await message.answer(
-        "Для покупки введите ваше Имя и Фамилию:" if lang == "ru" else
-        "Bilet almaq üçün ad və soyadınızı daxil edin:" if lang == "az" else
-        "To buy tickets, enter your First and Last name:",
-        reply_markup=types.ReplyKeyboardRemove()
-    )
+    if selected_ticket:
+        # Process ticket selection
+        await message.answer(TICKET_TYPES[selected_ticket][lang]["full_info"])
+        
+        user_data[message.from_user.id] = {
+            "step": "name",
+            "lang": lang,
+            "ticket_type": selected_ticket,
+            "ticket_price": TICKET_TYPES[selected_ticket][lang]["name"].split("—")[1].strip()
+        }
+        
+        await message.answer(
+            "Для покупки введите ваше Имя и Фамилию:" if lang == "ru" else
+            "Bilet almaq üçün ad və soyadınızı daxil edin:" if lang == "az" else
+            "To buy tickets, enter your First and Last name:",
+            reply_markup=types.ReplyKeyboardRemove()
+        )
+    else:
+        # Not a ticket selection, check if it's a menu item
+        if message.text in ["📅 Ближайшие события", "📅 Yaxın tədbirlər", "📅 Upcoming events"]:
+            await message.answer(
+                "Ближайшие события будут здесь" if lang == "ru" else
+                "Yaxın tədbirlər burada olacaq" if lang == "az" else
+                "Upcoming events will be here"
+            )
+        elif message.text in ["📞 Контакты", "📞 Əlaqə", "📞 Contacts"]:
+            await message.answer(
+                "Контакты: @username" if lang == "ru" else
+                "Əlaqə: @username" if lang == "az" else
+                "Contacts: @username"
+            )
+        elif message.text in ["🌐 Сменить язык", "🌐 Dil dəyiş", "🌐 Change language"]:
+            await message.answer(
+                "Выберите язык:" if lang == "ru" else
+                "Dil seçin:" if lang == "az" else
+                "Select language:",
+                reply_markup=get_lang_keyboard()
+            )
 
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
 async def get_name(message: types.Message):
