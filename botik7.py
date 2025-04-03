@@ -9,11 +9,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 # ===== CONFIGURATION =====
-# Get token from environment variables (set in Render dashboard)
-TOKEN = os.getenv("7501232713:AAEQG8REnPf83FqVkVqus-ZnJBKDnSt9Qvo")  # REQUIRED!
-if not TOKEN:
-    raise ValueError("TELEGRAM_TOKEN environment variable is not set!")
-
+TOKEN = "7883966462:AAG2udLydnyXDibLWyw8WrlVntzUB-KMXfE"  # Your token hardcoded
 ADMIN_ID = 1291104906  # Your Telegram ID
 PAYMENT_CARD = "4169 7388 9268 3164"  # Your payment card
 PORT = 10001  # Your specified port
