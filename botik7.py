@@ -101,8 +101,6 @@ TICKET_TYPES = {
     "standard": {
         "az": {
             "name": "Standard — 20 AZN",
-            "desc": "• Qarşılama kokteylləri\n• Fan Zonası",
-            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
             "full_info": (
                 "Standard — 20 AZN\n"
                 "• Qarşılama kokteylləri\n"
@@ -112,8 +110,6 @@ TICKET_TYPES = {
         },
         "ru": {
             "name": "Стандарт — 20 AZN", 
-            "desc": "• Приветственные коктейли\n• Fan Zone",
-            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки",
             "full_info": (
                 "Стандарт — 20 AZN\n"
                 "• Приветственные коктейли\n"
@@ -123,8 +119,6 @@ TICKET_TYPES = {
         },
         "en": {
             "name": "Standard — 20 AZN",
-            "desc": "• Welcome cocktails\n• Fan Zone",
-            "note": "❗️Please note that tickets cannot be refunded after purchase",
             "full_info": (
                 "Standard — 20 AZN\n"
                 "• Welcome cocktails\n"
@@ -136,8 +130,6 @@ TICKET_TYPES = {
     "vip_single": {
         "az": {
             "name": "VIP (Fərdi) — 40 AZN",
-            "desc": "• Fərdi masa yeri\n• Qarşılama kokteyli\n• Yerlərin sayı məhduddur",
-            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
             "full_info": (
                 "VIP (Fərdi) — 40 AZN\n"
                 "• Fərdi masa yeri\n"
@@ -148,8 +140,6 @@ TICKET_TYPES = {
         },
         "ru": {
             "name": "VIP (Индивидуальный) — 40 AZN",
-            "desc": "• Индивидуальное место\n• Приветственный коктейль\n• Количество мест ограничено",
-            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки",
             "full_info": (
                 "VIP (Индивидуальный) — 40 AZN\n"
                 "• Индивидуальное место\n"
@@ -160,8 +150,6 @@ TICKET_TYPES = {
         },
         "en": {
             "name": "VIP (Single) — 40 AZN", 
-            "desc": "• Individual seat\n• Welcome cocktail\n• Limited seats available",
-            "note": "❗️Please note that tickets cannot be refunded after purchase",
             "full_info": (
                 "VIP (Single) — 40 AZN\n"
                 "• Individual seat\n"
@@ -174,8 +162,6 @@ TICKET_TYPES = {
     "vip_table": {
         "az": {
             "name": "VIP (Masa) — 160 AZN",
-            "desc": "• 4 nəfərlik ayrıca masa\n• Bütün şirkət üçün qarşılama kokteylləri\n• Yerlərin sayı məhduddur",
-            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
             "full_info": (
                 "VIP (Masa) — 160 AZN\n"
                 "• 4 nəfərlik ayrıca masa\n"
@@ -186,8 +172,6 @@ TICKET_TYPES = {
         },
         "ru": {
             "name": "VIP (Столик) — 160 AZN",
-            "desc": "• Столик на 4 персоны\n• Приветственные коктейли для всей компании\n• Количество мест ограничено", 
-            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки",
             "full_info": (
                 "VIP (Столик) — 160 AZN\n"
                 "• Столик на 4 персоны\n"
@@ -198,8 +182,6 @@ TICKET_TYPES = {
         },
         "en": {
             "name": "VIP (Table) — 160 AZN",
-            "desc": "• Table for 4 people\n• Welcome cocktails for whole group\n• Limited seats available",
-            "note": "❗️Please note that tickets cannot be refunded after purchase",
             "full_info": (
                 "VIP (Table) — 160 AZN\n"
                 "• Table for 4 people\n"
@@ -212,8 +194,6 @@ TICKET_TYPES = {
     "exclusive_table": {
         "az": {
             "name": "Exclusive (Masa) — 240 AZN",
-            "desc": "• DJ masasının yanında giriş imkanı\n• 4 nəfərlik ayrıca masa\n• Bütün şirkət üçün qarşılama kokteylləri\n• Yerlərin sayı məhduddur",
-            "note": "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
             "full_info": (
                 "Exclusive (Masa) — 240 AZN\n"
                 "• DJ masasının yanında giriş imkanı\n"
@@ -225,8 +205,6 @@ TICKET_TYPES = {
         },
         "ru": {
             "name": "Exclusive (Столик) — 240 AZN",
-            "desc": "• Доступ к DJ-зоне\n• Столик на 4 персоны\n• Приветственные коктейли для всей компании\n• Количество мест ограничено",
-            "note": "❗️Обратите внимание, что билеты не подлежат возврату после покупки",
             "full_info": (
                 "Exclusive (Столик) — 240 AZN\n"
                 "• Доступ к DJ-зоне\n"
@@ -238,8 +216,6 @@ TICKET_TYPES = {
         },
         "en": {
             "name": "Exclusive (Table) — 240 AZN",
-            "desc": "• DJ area access\n• Table for 4 people\n• Welcome cocktails for whole group\n• Limited seats available",
-            "note": "❗️Please note that tickets cannot be refunded after purchase",
             "full_info": (
                 "Exclusive (Table) — 240 AZN\n"
                 "• DJ area access\n"
@@ -337,6 +313,7 @@ async def tickets_menu_handler(message: types.Message):
     )
 
 @dp.message(F.text)
+@dp.message(F.text)
 async def ticket_type_handler(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     
@@ -354,11 +331,7 @@ async def ticket_type_handler(message: types.Message):
             return
         await message.answer("Неверный тип билета" if lang == "ru" else "Yanlış bilet növü" if lang == "az" else "Invalid ticket type")
         return
-    
-    # Send full ticket info
-    await message.answer(TICKET_TYPES[ticket_type][lang]["full_info"])
-    
-    user_data[message.from_user.id] = {
+     user_data[message.from_user.id] = {
         "step": "name",
         "lang": lang,
         "ticket_type": ticket_type,
