@@ -368,6 +368,13 @@ async def get_phone(message: types.Message):
 @dp.message(F.text.in_(["✅ Да", "✅ Bəli", "✅ Yes"]))
 async def confirm_purchase(message: types.Message):
     if message.from_user.id not in user_data:
+        lang = user_lang.get(message.from_user.id, "en")
+        await message.answer(
+            "Нет активной заявки" if lang == "ru" else
+            "Aktiv müraciət yoxdur" if lang == "az" else
+            "No active application",
+            reply_markup=get_menu_keyboard(lang)
+        )
         return
     
     lang = user_data[message.from_user.id].get("lang", "en")
@@ -394,6 +401,9 @@ async def cancel_purchase(message: types.Message):
 
 @dp.message(F.photo, lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
 async def handle_payment_photo(message: types.Message):
+    if message.from_user.id not in user_data:
+        return
+        
     lang = user_data[message.from_user.id].get("lang", "en")
     try:
         ticket_id = generate_ticket_id()
@@ -495,8 +505,6 @@ async def show_approved(message: types.Message):
             )
     
     await message.answer(text)
-
-# Replace the problematic handler with this:
 
 @dp.message(Command(commands=["approve", "reject"]))
 async def handle_admin_approval(message: types.Message):
