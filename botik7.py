@@ -715,7 +715,7 @@ async def handle_admin_callbacks(callback: types.CallbackQuery):
             await callback.message.edit_text(orders, reply_markup=get_admin_keyboard())
             
         elif action == "search":
-                       await callback.message.answer("Введите ID пользователя:")
+            await callback.message.answer("Введите ID пользователя:")
             admin_pending_actions[callback.from_user.id] = "waiting_for_id"
             
         elif action == "refresh":
@@ -729,7 +729,7 @@ async def handle_admin_callbacks(callback: types.CallbackQuery):
     except Exception as e:
         logger.error(f"Admin callback error: {e}")
         await callback.answer("⚠️ Произошла ошибка")
-
+        
 @dp.message(lambda m: admin_pending_actions.get(m.from_user.id) == "waiting_for_id")
 async def handle_admin_search(message: types.Message):
     if not is_admin(message.from_user.id):
