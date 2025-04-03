@@ -5,16 +5,21 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-# --- CONFIGURATION ---
-TOKEN = "7883966462:AAG2udLydnyXDibLWyw8WrlVntzUB-KMXfE"  # Your Telegram bot token
-ADMIN_ID = 1291104906  # Your Telegram user ID
-PORT = 10001  # Your specified port
+# Конфигурация
+TOKEN = "7883966462:AAG2udLydnyXDibLWyw8WrlVntzUB-KMXfE"
+ADMIN_ID = 1291104906
+PAYMENT_CARD = "4169 7388 9268 3164"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-# --- STATES ---
+# Хранение заявок
+pending_orders = {}
+completed_orders = {}
+
+# Состояния
 class Form(StatesGroup):
     lang = State()
     name = State()
@@ -22,7 +27,7 @@ class Form(StatesGroup):
     ticket = State()
     photo = State()
 
-# --- TICKET DATA ---
+# Данные билетов
 TICKETS = {
     'ru': {
         'standard': ('Стандарт (20 АЗН)', 'Коктейли, Fan Zone'),
@@ -47,21 +52,29 @@ TICKETS = {
     }
 }
 
-# --- UTILITIES ---
-def generate_ticket_number():
-    return f"TKT-{''.join(random.choices(string.ascii_uppercase + string.digits, k=8))}"
+# Генерация кода билета
+def generate_order_code():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
+# Клавиатуры
 def get_lang_keyboard():
-    return types.ReplyKeyboardMarkup(
+    return ReplyKeyboardMarkup(
         keyboard=[
-            [types.KeyboardButton(text="🇷🇺 Русский")],
-            [types.KeyboardButton(text="🇦🇿 Azərbaycan")],
-            [types.KeyboardButton(text="🇬🇧 English")]
+            [KeyboardButton(text="🇷🇺 Русский")],
+            [KeyboardButton(text="🇦🇿 Azərbaycan")],
+            [KeyboardButton(text="🇬🇧 English")]
         ],
         resize_keyboard=True
     )
 
-# --- HANDLERS ---
+def get_ticket_keyboard(lang):
+    buttons = [[KeyboardButton(text=TICKETS[lang][t][0])] for t in TICKETS[lang]]
+    buttons.append([KeyboardButton(
+        text="⬅️ Назад" if lang == "ru" else "⬅️ Geri" if lang == "az" else "⬅️ Back"
+    )])
+    return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+
+# Обработчики
 @dp.message(Command("start"))
 async def start(message: types.Message, state: FSMContext):
     await state.set_state(Form.lang)
@@ -69,100 +82,87 @@ async def start(message: types.Message, state: FSMContext):
                         reply_markup=get_lang_keyboard())
 
 @dp.message(Form.lang)
-async def set_language(message: types.Message, state: FSMContext):
-    if message.text not in ["🇷🇺 Русский", "🇦🇿 Azərbaycan", "🇬🇧 English"]:
-        return await message.answer("Пожалуйста, выберите язык из предложенных")
-    
+async def set_lang(message: types.Message, state: FSMContext):
     lang = "ru" if "🇷🇺" in message.text else "az" if "🇦🇿" in message.text else "en"
     await state.update_data(lang=lang)
     await state.set_state(Form.name)
     await message.answer(
-        "Введите ваше имя и фамилию:" if lang == "ru" else
-        "Ad və soyadınızı daxil edin:" if lang == "az" else
+        "Введите имя и фамилию:" if lang == "ru" else 
+        "Ad və soyadınızı daxil edin:" if lang == "az" else 
         "Enter your full name:",
         reply_markup=types.ReplyKeyboardRemove()
     )
 
 @dp.message(Form.name)
 async def process_name(message: types.Message, state: FSMContext):
-    if len(message.text.split()) < 2:
-        data = await state.get_data()
-        lang = data.get('lang', 'en')
-        return await message.answer(
-            "Введите имя и фамилию полностью:" if lang == "ru" else
-            "Ad və soyadınızı tam daxil edin:" if lang == "az" else
-            "Please enter full name:"
-        )
-    
     await state.update_data(name=message.text)
     await state.set_state(Form.phone)
     data = await state.get_data()
-    lang = data.get('lang', 'en')
+    lang = data['lang']
     await message.answer(
-        "Введите ваш номер телефона:" if lang == "ru" else
+        "Введите номер телефона:" if lang == "ru" else
         "Telefon nömrənizi daxil edin:" if lang == "az" else
-        "Enter your phone number:"
+        "Enter phone number:"
     )
 
 @dp.message(Form.phone)
 async def process_phone(message: types.Message, state: FSMContext):
     if not message.text.replace('+', '').isdigit():
         data = await state.get_data()
-        lang = data.get('lang', 'en')
-        return await message.answer(
-            "Неверный номер телефона. Попробуйте снова:" if lang == "ru" else
-            "Yanlış telefon nömrəsi. Yenidən cəhd edin:" if lang == "az" else
-            "Invalid phone number. Try again:"
+        lang = data['lang']
+        await message.answer(
+            "Неверный номер. Попробуйте снова:" if lang == "ru" else
+            "Yanlış nömrə. Yenidən cəhd edin:" if lang == "az" else
+            "Invalid number. Try again:"
         )
+        return
     
     await state.update_data(phone=message.text)
     data = await state.get_data()
-    lang = data.get('lang', 'en')
-    
-    buttons = [[types.KeyboardButton(text=ticket[0])] for ticket in TICKETS[lang].values()]
     await message.answer(
-        "Выберите билет:" if lang == "ru" else "Bilet seçin:" if lang == "az" else "Select ticket:",
-        reply_markup=types.ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+        "Выберите билет:" if data['lang'] == "ru" else 
+        "Bilet seçin:" if data['lang'] == "az" else 
+        "Select ticket:",
+        reply_markup=get_ticket_keyboard(data['lang'])
     )
     await state.set_state(Form.ticket)
 
 @dp.message(Form.ticket)
 async def process_ticket(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    lang = data.get('lang', 'en')
+    lang = data['lang']
     
-    # Find selected ticket
+    # Поиск выбранного билета
     selected = None
-    for ticket_type, (name, desc) in TICKETS[lang].items():
-        if name in message.text:
-            selected = (ticket_type, name, desc)
+    for ticket_type in TICKETS[lang]:
+        if TICKETS[lang][ticket_type][0] in message.text:
+            selected = ticket_type
             break
     
     if not selected:
-        buttons = [[types.KeyboardButton(text=ticket[0])] for ticket in TICKETS[lang].values()]
-        return await message.answer(
-            "Пожалуйста, выберите билет из списка:" if lang == "ru" else
-            "Zəhmət olmasa siyahıdan bilet seçin:" if lang == "az" else
-            "Please select ticket from the list:",
-            reply_markup=types.ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+        await message.answer(
+            "Выберите билет из списка:" if lang == "ru" else
+            "Siyahıdan bilet seçin:" if lang == "az" else
+            "Select ticket from list:",
+            reply_markup=get_ticket_keyboard(lang)
         )
+        return
     
-    ticket_number = generate_ticket_number()
-    await state.update_data(ticket_type=selected[0], ticket_name=selected[1], ticket_number=ticket_number)
+    order_code = generate_order_code()
+    await state.update_data(ticket_type=selected, order_code=order_code)
     
+    # Инструкция по оплате
     await message.answer(
-        f"🎫 {selected[1]}\n"
-        f"📝 {selected[2]}\n\n"
-        f"🔢 Номер билета: {ticket_number}\n"
-        "📸 Отправьте фото оплаты:" if lang == "ru" else
-        f"🎫 {selected[1]}\n"
-        f"📝 {selected[2]}\n\n"
-        f"🔢 Bilet nömrəsi: {ticket_number}\n"
-        "📸 Ödəniş şəklini göndərin:" if lang == "az" else
-        f"🎫 {selected[1]}\n"
-        f"📝 {selected[2]}\n\n"
-        f"🔢 Ticket number: {ticket_number}\n"
-        "📸 Send payment photo:",
+        f"💳 Оплатите {TICKETS[lang][selected][0]} на карту:\n"
+        f"<code>{PAYMENT_CARD}</code>\n\n"
+        "📸 Отправьте скриншот оплаты:" if lang == "ru" else
+        f"💳 {TICKETS[lang][selected][0]} kartına köçürün:\n"
+        f"<code>{PAYMENT_CARD}</code>\n\n"
+        "📸 Ödəniş skrinşotu göndərin:" if lang == "az" else
+        f"💳 Pay {TICKETS[lang][selected][0]} to card:\n"
+        f"<code>{PAYMENT_CARD}</code>\n\n"
+        "📸 Send payment screenshot:",
+        parse_mode="HTML",
         reply_markup=types.ReplyKeyboardRemove()
     )
     await state.set_state(Form.photo)
@@ -170,56 +170,113 @@ async def process_ticket(message: types.Message, state: FSMContext):
 @dp.message(Form.photo, F.photo)
 async def process_photo(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    lang = data.get('lang', 'en')
-    ticket_number = data.get('ticket_number', 'UNKNOWN')
+    lang = data['lang']
+    order_code = data['order_code']
     
-    # Send confirmation to user
-    await message.answer(
-        f"✅ Билет {ticket_number} подтвержден!\n"
-        "❗️ Билеты не подлежат возврату" if lang == "ru" else
-        f"✅ Bilet {ticket_number} təsdiqləndi!\n"
-        "❗️ Biletlər geri qaytarılmır" if lang == "az" else
-        f"✅ Ticket {ticket_number} confirmed!\n"
-        "❗️ Tickets are non-refundable"
-    )
+    # Сохраняем заявку
+    pending_orders[order_code] = {
+        "user_id": message.from_user.id,
+        "data": data,
+        "photo_id": message.photo[-1].file_id
+    }
     
-    # Notify admin
-    await bot.send_photo(
+    # Уведомление админу
+    admin_msg = await bot.send_photo(
         ADMIN_ID,
         message.photo[-1].file_id,
         caption=(
-            f"🎫 Новый билет: {ticket_number}\n"
-            f"👤 {data.get('name')}\n"
-            f"📞 {data.get('phone')}\n"
-            f"💵 {data.get('ticket_name')}"
-        )
+            f"🆔 Код: <code>{order_code}</code>\n"
+            f"👤 {data['name']}\n"
+            f"📞 {data['phone']}\n"
+            f"🎟 {TICKETS[lang][data['ticket_type']][0]}\n\n"
+            "Ответьте на это сообщение:\n"
+            "/approve - подтвердить\n"
+            "/reject [причина] - отклонить"
+        ),
+        parse_mode="HTML"
     )
     
-    await state.clear()
-
-# --- ADMIN COMMANDS ---
-@dp.message(Command("admin"))
-async def admin_panel(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return await message.answer("⛔ Доступ запрещен")
+    # Сохраняем ID сообщения для ответа
+    pending_orders[order_code]["admin_msg_id"] = admin_msg.message_id
     
     await message.answer(
-        "Панель администратора",
-        reply_markup=types.ReplyKeyboardMarkup(
-            keyboard=[
-                [types.KeyboardButton(text="/stats")]
-            ],
-            resize_keyboard=True
-        )
+        f"✅ Заявка #{order_code} отправлена на проверку!\n"
+        "Ожидайте подтверждения." if lang == "ru" else
+        f"✅ #{order_code} müraciəti yoxlanılır!\n"
+        "Təsdiq gözləyin." if lang == "az" else
+        f"✅ Application #{order_code} submitted!\n"
+        "Awaiting approval.",
+        reply_markup=get_lang_keyboard()
     )
+    await state.clear()
 
-@dp.message(Command("stats"))
-async def show_stats(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
+# Админ-команды
+@dp.message(Command("approve"))
+async def approve_order(message: types.Message):
+    if message.from_user.id != ADMIN_ID or not message.reply_to_message:
         return
-    await message.answer("Статистика будет отображаться здесь")
+    
+    order_code = message.reply_to_message.caption.split("\n")[0].split()[-1]
+    if order_code not in pending_orders:
+        return await message.answer("⚠️ Заявка не найдена")
+    
+    order = pending_orders.pop(order_code)
+    completed_orders[order_code] = order
+    
+    # Уведомление пользователю
+    lang = order['data']['lang']
+    ticket_name = TICKETS[lang][order['data']['ticket_type']][0]
+    
+    await bot.send_message(
+        order['user_id'],
+        f"🎉 Ваш билет подтвержден!\n"
+        f"🔢 Номер: <code>{order_code}</code>\n"
+        f"🎫 {ticket_name}\n\n"
+        "❗️ Билеты не подлежат возврату" if lang == "ru" else
+        f"🎉 Biletiniz təsdiqləndi!\n"
+        f"🔢 Nömrə: <code>{order_code}</code>\n"
+        f"🎫 {ticket_name}\n\n"
+        "❗️ Biletlər geri qaytarılmır" if lang == "az" else
+        f"🎉 Your ticket confirmed!\n"
+        f"🔢 Number: <code>{order_code}</code>\n"
+        f"🎫 {ticket_name}\n\n"
+        "❗️ Tickets are non-refundable",
+        parse_mode="HTML"
+    )
+    
+    await message.answer(f"✅ Заявка {order_code} подтверждена")
 
-# --- RUN THE BOT ---
+@dp.message(Command("reject"))
+async def reject_order(message: types.Message):
+    if message.from_user.id != ADMIN_ID or not message.reply_to_message:
+        return
+    
+    order_code = message.reply_to_message.caption.split("\n")[0].split()[-1]
+    if order_code not in pending_orders:
+        return await message.answer("⚠️ Заявка не найдена")
+    
+    reason = " ".join(message.text.split()[1:]) or "не указана"
+    order = pending_orders.pop(order_code)
+    
+    # Уведомление пользователю
+    lang = order['data']['lang']
+    await bot.send_message(
+        order['user_id'],
+        f"❌ Заявка отклонена\n"
+        f"Причина: {reason}\n\n"
+        "Попробуйте оформить заявку снова" if lang == "ru" else
+        f"❌ Müraciət rədd edildi\n"
+        f"Səbəb: {reason}\n\n"
+        "Yenidən müraciət edin" if lang == "az" else
+        f"❌ Application rejected\n"
+        f"Reason: {reason}\n\n"
+        "Please try again",
+        reply_markup=get_lang_keyboard()
+    )
+    
+    await message.answer(f"❌ Заявка {order_code} отклонена")
+
+# Запуск бота
 async def main():
     await dp.start_polling(bot)
 
