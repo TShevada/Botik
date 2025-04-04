@@ -5,11 +5,11 @@ import os
 import random
 import string
 from datetime import datetime
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.enums import ParseMode
-from aiogram.client.default import DefaultBotProperties
-from aiogram.filters import Command
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from aiogram import Bot, Dispatcher, types
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.utils import executor
 from collections import defaultdict
 from aiohttp import web
 
@@ -22,16 +22,16 @@ PAYMENT_CARD = "4169 7388 9268 3164"
 # Constants
 PHOTOS_DIR = "payment_screenshots"
 WELCOME_BANNER = "welcome_banner.jpg"
-PORT = 10002  # Changed to 10002
+PORT = 10002
 
 # Setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 os.makedirs(PHOTOS_DIR, exist_ok=True)
 
-bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
-dp = Dispatcher()
-
+bot = Bot(token=TOKEN, parse_mode=types.ParseMode.MARKDOWN)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
 # Storage
 user_lang = {}
 user_data = {}
@@ -1003,10 +1003,11 @@ async def main():
     logger.info(f"🚀 Бот запущен на порту {PORT}")
     await asyncio.Event().wait()
 
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Бот остановлен")
-    except Exception as e:
-        logger.critical(f"Фатальная ошибка: {e}")
+async def on_startup(dp):
+    # This will be called when the bot starts
+    await bot.send_message(YOUR_TELEGRAM_ID, "🤖 Bot started successfully!")
+
+if __name__ == '__main__':
+    # Start the bot
+    from aiogram import executor
+    executor.start_polling(dp, on_startup=on_startup, skip_updates=True)
