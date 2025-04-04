@@ -15,7 +15,10 @@ from aiogram.types import (
 from collections import defaultdict
 import logging
 # ===== CONFIGURATION =====
-TOKEN = os.getenv("BOT_TOKEN")  # Never hardcode tokens!
+TOKEN = os.getenv("BOT_TOKEN")
+
+if not TOKEN:
+    raise RuntimeError("BOT_TOKEN environment variable is missing!")
 YOUR_TELEGRAM_ID = 1291104906
 PAYMENT_CARD = "4169 7388 9268 3164"
 # ========================
