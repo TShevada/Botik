@@ -1,5 +1,3 @@
-import logging
-import asyncio
 import os
 import random
 import string
@@ -15,13 +13,10 @@ from aiogram.types import (
     InlineKeyboardButton
 )
 from collections import defaultdict
-from flask import Flask
-import telegram
-from telegram import Bot, Update, ParseMode
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+
 # ===== CONFIGURATION =====
-TOKEN = "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y"
-YOUR_TELEGRAM_ID = 1291104906  # Your admin ID
+TOKEN = os.getenv("BOT_TOKEN")  # Never hardcode tokens!
+YOUR_TELEGRAM_ID = 1291104906
 PAYMENT_CARD = "4169 7388 9268 3164"
 # ========================
 
@@ -29,16 +24,14 @@ PAYMENT_CARD = "4169 7388 9268 3164"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-bot = Bot(token=TOKEN, parse_mode=ParseMode.MARKDOWN)
+bot = Bot(token=TOKEN, parse_mode=ParseMode.MARKDOWN_V2)
 dp = Dispatcher()
-app = Flask(__name__)
-# In-memory storage
+
+# Storage (in production use Redis/DB)
 user_lang = {}
 user_data = {}
-pending_approvals = {}
-ticket_codes = {}
-orders = []  # Stores all orders
-statistics = defaultdict(int)  # Ticket type counts
+orders = []  
+statistics = defaultdict(int)
 
 # Ticket Types
 TICKET_TYPES = {
@@ -107,31 +100,28 @@ def get_admin_keyboard():
     ])
 
 async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str):
-    try:
-        ticket_name = TICKET_TYPES[ticket_type]["ru"]["name"]  # Admin sees in Russian
-        await bot.send_message(
-            YOUR_TELEGRAM_ID,
-            f"🆕 Новая заявка:\n\n"
-            f"👤 ID: {user_id}\n"
-            f"📛 Имя: {name}\n"
-            f"📱 Телефон: {phone}\n"
-            f"🎫 Тип: {ticket_name}\n\n"
-            f"Ответьте:\n"
-            f"/accept_{user_id} - подтвердить\n"
-            f"/reject_{user_id} - отклонить"
-        )
-    except Exception as e:
-        logger.error(f"Admin notify error: {e}")
-
+    ticket_name = TICKET_TYPES[ticket_type]["ru"]["name"]
+    await bot.send_message(
+        YOUR_TELEGRAM_ID,
+        f"🆕 Новая заявка:\n\n"
+        f"👤 ID: {user_id}\n"
+        f"📛 Имя: {name}\n"
+        f"📱 Телефон: {phone}\n"
+        f"🎫 Тип: {ticket_name}\n\n"
+        f"Ответьте:\n"
+        f"/accept_{user_id} - подтвердить\n"
+        f"/reject_{user_id} - отклонить",
+        parse_mode=ParseMode.MARKDOWN_V2
+    )
 # ================= HANDLERS =================
 
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
-    try:
-        if os.path.exists(WELCOME_BANNER):
-            await message.answer_photo(types.InputFile(WELCOME_BANNER))
-    except Exception as e:
-        logger.error(f"Banner error: {e}")
+    user_lang[message.from_user.id] = "ru"
+    await message.answer(
+        "Добро пожаловать! Выберите действие:",
+        reply_markup=get_menu_keyboard("ru")
+    )
     
     # Set default language to Russian
     user_lang[message.from_user.id] = "ru"  # Change to "az" or "en" if you prefer
@@ -397,12 +387,8 @@ def home():
     return "Hello, your bot is working!"
 
 
-def main():
-    # Your bot's polling logic
-    from telegram.ext import Updater
-    updater = Updater(token=os.environ['BOT_TOKEN'], use_context=True)
-    updater.start_polling()
-    updater.idle()
+async def main():
+    await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
