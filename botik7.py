@@ -4,18 +4,24 @@ import asyncio
 import random
 import string
 from datetime import datetime
+from collections import defaultdict
+from typing import Dict, Any
+
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
-from aiogram.filters import Command
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
-from aiohttp import web
-from collections import defaultdict
+from aiogram.filters import Command, CommandObject
+from aiogram.types import (
+    InlineKeyboardButton, 
+    InlineKeyboardMarkup, 
+    ReplyKeyboardMarkup, 
+    KeyboardButton
+)
 
 # Configuration
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 ADMIN_ID = 1291104906
-PORT = int(os.getenv("PORT", "10001"))
+PORT = int(os.getenv("PORT", "8080")
 PAYMENT_CARD = "4169 7388 9268 3164"
 
 # Setup
@@ -606,8 +612,10 @@ async def handle_admin_approval(message: types.Message):
                            "/reject_12345 причина - отклонить")
 
 async def main():
+    # Start polling (ignore PORT since we're not using webhooks)
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
