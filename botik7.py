@@ -17,7 +17,7 @@ from aiogram.types import (
 from collections import defaultdict
 
 # ===== CONFIGURATION =====
-TOKEN = "YOUR_BOT_TOKEN_HERE"
+TOKEN = "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y"
 YOUR_TELEGRAM_ID = 1291104906  # Your admin ID
 PAYMENT_CARD = "4169 7388 9268 3164"
 # ========================
