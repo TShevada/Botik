@@ -84,153 +84,80 @@ def get_ticket_type_keyboard(lang: str) -> ReplyKeyboardMarkup:
     
     back_text = {
         "ru": "⬅️ Назад",
-        "az": "⬅️ Geri", 
+        "az": "⬅️ Geri",
         "en": "⬅️ Back"
     }
     buttons.append([KeyboardButton(text=back_text[lang])])
     
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
-
 # Ticket Types with Payment Notes
 TICKET_TYPES = {
     "standard": {
         "az": {
             "name": "Standard — 20 AZN",
-            "full_info": (
-                "Standard — 20 AZN\n"
-                "• Qarşılama kokteylləri\n"
-                "• Fan Zonası\n\n"
-                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
-            ),
+            "full_info": "Standard — 20 AZN\n• Qarşılama kokteylləri\n• Fan Zonası\n\n❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
             "note": "Ödəniş etdikdən sonra skrinşot göndərməyi unutmayın!"
         },
         "ru": {
             "name": "Стандарт — 20 AZN", 
-            "full_info": (
-                "Стандарт — 20 AZN\n"
-                "• Приветственные коктейли\n"
-                "• Fan Zone\n\n"
-                "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
-            ),
+            "full_info": "Стандарт — 20 AZN\n• Приветственные коктейли\n• Fan Zone\n\n❗️Обратите внимание, что билеты не подлежат возврату после покупки",
             "note": "Не забудьте отправить скриншот после оплаты!"
         },
         "en": {
             "name": "Standard — 20 AZN",
-            "full_info": (
-                "Standard — 20 AZN\n"
-                "• Welcome cocktails\n"
-                "• Fan Zone\n\n"
-                "❗️Please note that tickets cannot be refunded after purchase"
-            ),
+            "full_info": "Standard — 20 AZN\n• Welcome cocktails\n• Fan Zone\n\n❗️Please note that tickets cannot be refunded after purchase",
             "note": "Don't forget to send payment screenshot!"
         }
     },
     "vip_single": {
         "az": {
             "name": "VIP (Fərdi) — 40 AZN",
-            "full_info": (
-                "VIP (Fərdi) — 40 AZN\n"
-                "• Fərdi masa yeri\n"
-                "• Qarşılama kokteyli\n"
-                "• Yerlərin sayı məhduddur\n\n"
-                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
-            ),
+            "full_info": "VIP (Fərdi) — 40 AZN\n• Fərdi masa yeri\n• Qarşılama kokteyli\n• Yerlərin sayı məhduddur\n\n❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
             "note": "Ödəniş etdikdən sonra skrinşot göndərməyi unutmayın!"
         },
         "ru": {
             "name": "VIP (Индивидуальный) — 40 AZN",
-            "full_info": (
-                "VIP (Индивидуальный) — 40 AZN\n"
-                "• Индивидуальное место\n"
-                "• Приветственный коктейль\n"
-                "• Количество мест ограничено\n\n"
-                "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
-            ),
+            "full_info": "VIP (Индивидуальный) — 40 AZN\n• Индивидуальное место\n• Приветственный коктейль\n• Количество мест ограничено\n\n❗️Обратите внимание, что билеты не подлежат возврату после покупки",
             "note": "Не забудьте отправить скриншот после оплаты!"
         },
         "en": {
             "name": "VIP (Single) — 40 AZN", 
-            "full_info": (
-                "VIP (Single) — 40 AZN\n"
-                "• Individual seat\n"
-                "• Welcome cocktail\n"
-                "• Limited seats available\n\n"
-                "❗️Please note that tickets cannot be refunded after purchase"
-            ),
+            "full_info": "VIP (Single) — 40 AZN\n• Individual seat\n• Welcome cocktail\n• Limited seats available\n\n❗️Please note that tickets cannot be refunded after purchase",
             "note": "Don't forget to send payment screenshot!"
         }
     },
     "vip_table": {
         "az": {
             "name": "VIP (Masa) — 160 AZN",
-            "full_info": (
-                "VIP (Masa) — 160 AZN\n"
-                "• 4 nəfərlik ayrıca masa\n"
-                "• Bütün şirkət üçün qarşılama kokteylləri\n"
-                "• Yerlərin sayı məhduddur\n\n"
-                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
-            ),
+            "full_info": "VIP (Masa) — 160 AZN\n• 4 nəfərlik ayrıca masa\n• Bütün şirkət üçün qarşılama kokteylləri\n• Yerlərin sayı məhduddur\n\n❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
             "note": "Ödəniş etdikdən sonra skrinşot göndərməyi unutmayın!"
         },
         "ru": {
             "name": "VIP (Столик) — 160 AZN",
-            "full_info": (
-                "VIP (Столик) — 160 AZN\n"
-                "• Столик на 4 персоны\n"
-                "• Приветственные коктейли для всей компании\n"
-                "• Количество мест ограничено\n\n"
-                "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
-            ),
+            "full_info": "VIP (Столик) — 160 AZN\n• Столик на 4 персоны\n• Приветственные коктейли для всей компании\n• Количество мест ограничено\n\n❗️Обратите внимание, что билеты не подлежат возврату после покупки",
             "note": "Не забудьте отправить скриншот после оплаты!"
         },
         "en": {
             "name": "VIP (Table) — 160 AZN",
-            "full_info": (
-                "VIP (Table) — 160 AZN\n"
-                "• Table for 4 people\n"
-                "• Welcome cocktails for whole group\n"
-                "• Limited seats available\n\n"
-                "❗️Please note that tickets cannot be refunded after purchase"
-            ),
+            "full_info": "VIP (Table) — 160 AZN\n• Table for 4 people\n• Welcome cocktails for whole group\n• Limited seats available\n\n❗️Please note that tickets cannot be refunded after purchase",
             "note": "Don't forget to send payment screenshot!"
         }
     },
     "exclusive_table": {
         "az": {
             "name": "Exclusive (Masa) — 240 AZN",
-            "full_info": (
-                "Exclusive (Masa) — 240 AZN\n"
-                "• DJ masasının yanında giriş imkanı\n"
-                "• 4 nəfərlik ayrıca masa\n"
-                "• Bütün şirkət üçün qarşılama kokteylləri\n"
-                "• Yerlərin sayı məhduddur\n\n"
-                "❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır"
-            ),
+            "full_info": "Exclusive (Masa) — 240 AZN\n• DJ masasının yanında giriş imkanı\n• 4 nəfərlik ayrıca masa\n• Bütün şirkət üçün qarşılama kokteylləri\n• Yerlərin sayı məhduddur\n\n❗️Nəzərinizə çatdırırıq ki, biletlər alındıqdan sonra geri qaytarılmır",
             "note": "Ödəniş etdikdən sonra skrinşot göndərməyi unutmayın!"
         },
         "ru": {
             "name": "Exclusive (Столик) — 240 AZN",
-            "full_info": (
-                "Exclusive (Столик) — 240 AZN\n"
-                "• Доступ к DJ-зоне\n"
-                "• Столик на 4 персоны\n"
-                "• Приветственные коктейли для всей компании\n"
-                "• Количество мест ограничено\n\n"
-                "❗️Обратите внимание, что билеты не подлежат возврату после покупки"
-            ),
+            "full_info": "Exclusive (Столик) — 240 AZN\n• Доступ к DJ-зоне\n• Столик на 4 персоны\n• Приветственные коктейли для всей компании\n• Количество мест ограничено\n\n❗️Обратите внимание, что билеты не подлежат возврату после покупки",
             "note": "Не забудьте отправить скриншот после оплаты!"
         },
         "en": {
             "name": "Exclusive (Table) — 240 AZN",
-            "full_info": (
-                "Exclusive (Table) — 240 AZN\n"
-                "• DJ area access\n"
-                "• Table for 4 people\n"
-                "• Welcome cocktails for whole group\n"
-                "• Limited seats available\n\n"
-                "❗️Please note that tickets cannot be refunded after purchase"
-            ),
+            "full_info": "Exclusive (Table) — 240 AZN\n• DJ area access\n• Table for 4 people\n• Welcome cocktails for whole group\n• Limited seats available\n\n❗️Please note that tickets cannot be refunded after purchase",
             "note": "Don't forget to send payment screenshot!"
         }
     }
@@ -266,7 +193,8 @@ async def tickets_menu_handler(message: types.Message):
         reply_markup=get_ticket_type_keyboard(lang)
     )
 
-async def back_handler(message: types.Message):
+@dp.message(F.text.in_(["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]))
+async def handle_back(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     await message.answer(
         "Главное меню" if lang == "ru" else
@@ -275,18 +203,12 @@ async def back_handler(message: types.Message):
         reply_markup=get_menu_keyboard(lang)
     )
 
-@dp.message(F.text.in_(["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]))
-async def handle_back(message: types.Message):
-    await back_handler(message)
-
 @dp.message(F.text)
 async def handle_text_messages(message: types.Message):
-    # Check if user is in the middle of a ticket purchase process
-    if message.from_user.id in user_data:
-        current_step = user_data[message.from_user.id].get("step")
-        if current_step in ["name", "phone", "confirm"]:
-            return  # Let the specific handlers deal with these cases
-    
+    # Check if user is in the middle of a process
+    if message.from_user.id in user_data and user_data[message.from_user.id].get("step") in ["name", "phone", "confirm"]:
+        return
+        
     lang = user_lang.get(message.from_user.id, "en")
     
     # Check if this is a ticket type selection
@@ -313,12 +235,7 @@ async def handle_text_messages(message: types.Message):
             "To buy tickets, enter your First and Last name:",
             reply_markup=types.ReplyKeyboardRemove()
         )
-    else:
-        # Handle other text messages
-        await handle_other_messages(message, lang)
-
-async def handle_other_messages(message: types.Message, lang: str):
-    if message.text in ["📅 Ближайшие события", "📅 Yaxın tədbirlər", "📅 Upcoming events"]:
+    elif message.text in ["📅 Ближайшие события", "📅 Yaxın tədbirlər", "📅 Upcoming events"]:
         await message.answer(
             "Ближайшие события будут здесь" if lang == "ru" else
             "Yaxın tədbirlər burada olacaq" if lang == "az" else
@@ -337,17 +254,7 @@ async def handle_other_messages(message: types.Message, lang: str):
             "Select language:",
             reply_markup=get_lang_keyboard()
         )
-    else:
-        # If we get here, the message wasn't handled by any previous condition
-        if message.from_user.id in user_data and user_data[message.from_user.id].get("step") == "name":
-            # This should have been handled by get_name handler
-            await get_name(message)
-        else:
-            await message.answer(
-                "Неизвестная команда" if lang == "ru" else
-                "Naməlum əmr" if lang == "az" else
-                "Unknown command"
-            )
+
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
 async def get_name(message: types.Message):
     if not message.text or len(message.text) < 2:
@@ -542,85 +449,91 @@ async def show_approved(message: types.Message):
     
     await message.answer(text)
 
-@dp.message(Command(commands=["approve", "reject"]))
-async def handle_admin_approval(message: types.Message):
+@dp.message(Command(startswith="approve_"))
+async def approve_handler(message: types.Message, command: CommandObject):
     if not is_admin(message.from_user.id):
         return
     
     try:
-        # Extract command and user_id from text like "/approve_12345" or "/reject_12345 reason"
-        command_parts = message.text.split('_')
-        if len(command_parts) < 2:
-            await message.answer("⚠️ Неверный формат команды. Используйте /approve_12345 или /reject_12345 причина")
-            return
-            
-        command = command_parts[0][1:]  # Remove leading slash
-        user_id = int(command_parts[1].split()[0])  # Get user_id before any space
+        user_id = int(command.command.split("_")[1])
         data = pending_approvals.get(user_id)
         
         if not data:
             await message.answer("⚠️ Заявка не найдена")
             return
             
-        if command == "approve":
-            approved_tickets[user_id].append({
-                "ticket_id": data["ticket_id"],
-                "ticket_type": data["ticket_type"],
-                "date": data["date"]
-            })
-            
-            # Notify user
-            lang = data["lang"]
-            ticket_name = TICKET_TYPES[data["ticket_type"]][lang]["name"]
-            await bot.send_message(
-                user_id,
-                f"✅ Ваш билет подтвержден!\n\n"
-                f"🎟 {ticket_name}\n"
-                f"🆔 Номер билета: #{data['ticket_id']}\n\n"
-                f"Сохраните этот номер для входа на мероприятие." if lang == "ru" else
-                f"✅ Biletiniz təsdiqləndi!\n\n"
-                f"🎟 {ticket_name}\n"
-                f"🆔 Bilet nömrəsi: #{data['ticket_id']}\n\n"
-                f"Tədbirə giriş üçün bu nömrəni saxlayın." if lang == "az" else
-                f"✅ Your ticket is approved!\n\n"
-                f"🎟 {ticket_name}\n"
-                f"🆔 Ticket ID: #{data['ticket_id']}\n\n"
-                f"Save this number for event entry."
-            )
-            
-            await message.answer(f"✅ Заявка #{data['ticket_id']} подтверждена")
-            
-        elif command == "reject":
-            reason = message.text.split(maxsplit=2)[2] if len(message.text.split()) > 2 else (
-                "Причина не указана" if data["lang"] == "ru" else
-                "Səbəb göstərilməyib" if data["lang"] == "az" else
-                "No reason provided"
-            )
-            
-            # Notify user
-            lang = data["lang"]
-            await bot.send_message(
-                user_id,
-                f"❌ Ваша заявка отклонена\n\n"
-                f"Причина: {reason}\n\n"
-                f"Если вы считаете это ошибкой, свяжитесь с администратором." if lang == "ru" else
-                f"❌ Müraciətiniz rədd edildi\n\n"
-                f"Səbəb: {reason}\n\n"
-                f"Əgər səhv olduğunu düşünürsünüzsə, administratorla əlaqə saxlayın." if lang == "az" else
-                f"❌ Your application was rejected\n\n"
-                f"Reason: {reason}\n\n"
-                f"If you think this is a mistake, please contact admin."
-            )
-            
-            await message.answer(f"❌ Заявка #{data['ticket_id']} отклонена. Причина: {reason}")
+        approved_tickets[user_id].append({
+            "ticket_id": data["ticket_id"],
+            "ticket_type": data["ticket_type"],
+            "date": data["date"]
+        })
         
+        # Notify user
+        lang = data["lang"]
+        ticket_name = TICKET_TYPES[data["ticket_type"]][lang]["name"]
+        await bot.send_message(
+            user_id,
+            f"✅ Ваш билет подтвержден!\n\n"
+            f"🎟 {ticket_name}\n"
+            f"🆔 Номер билета: #{data['ticket_id']}\n\n"
+            f"Сохраните этот номер для входа на мероприятие." if lang == "ru" else
+            f"✅ Biletiniz təsdiqləndi!\n\n"
+            f"🎟 {ticket_name}\n"
+            f"🆔 Bilet nömrəsi: #{data['ticket_id']}\n\n"
+            f"Tədbirə giriş üçün bu nömrəni saxlayın." if lang == "az" else
+            f"✅ Your ticket is approved!\n\n"
+            f"🎟 {ticket_name}\n"
+            f"🆔 Ticket ID: #{data['ticket_id']}\n\n"
+            f"Save this number for event entry."
+        )
+        
+        await message.answer(f"✅ Заявка #{data['ticket_id']} подтверждена")
         del pending_approvals[user_id]
         
     except Exception as e:
-        logger.error(f"Admin error: {e}")
-        await message.answer("⚠️ Ошибка команды. Формат:\n"
-                           "/approve_12345 - подтвердить\n"
-                           "/reject_12345 причина - отклонить")
+        logger.error(f"Approve error: {e}")
+        await message.answer("⚠️ Ошибка команды. Формат: /approve_12345")
+
+@dp.message(Command(startswith="reject_"))
+async def reject_handler(message: types.Message, command: CommandObject):
+    if not is_admin(message.from_user.id):
+        return
+    
+    try:
+        parts = command.command.split("_", maxsplit=2)
+        user_id = int(parts[1])
+        reason = parts[2] if len(parts) > 2 else (
+            "Причина не указана" if message.from_user.language_code == "ru" else
+            "Səbəb göstərilməyib" if message.from_user.language_code == "az" else
+            "No reason provided"
+        )
+        
+        data = pending_approvals.get(user_id)
+        if not data:
+            await message.answer("⚠️ Заявка не найдена")
+            return
+            
+        # Notify user
+        lang = data["lang"]
+        await bot.send_message(
+            user_id,
+            f"❌ Ваша заявка отклонена\n\n"
+            f"Причина: {reason}\n\n"
+            f"Если вы считаете это ошибкой, свяжитесь с администратором." if lang == "ru" else
+            f"❌ Müraciətiniz rədd edildi\n\n"
+            f"Səbəb: {reason}\n\n"
+            f"Əgər səhv olduğunu düşünürsünüzsə, administratorla əlaqə saxlayın." if lang == "az" else
+            f"❌ Your application was rejected\n\n"
+            f"Reason: {reason}\n\n"
+            f"If you think this is a mistake, please contact admin."
+        )
+        
+        await message.answer(f"❌ Заявка #{data['ticket_id']} отклонена. Причина: {reason}")
+        del pending_approvals[user_id]
+        
+    except Exception as e:
+        logger.error(f"Reject error: {e}")
+        await message.answer("⚠️ Ошибка команды. Формат: /reject_12345 причина")
 
 async def main():
     await bot.delete_webhook(drop_pending_updates=True)
