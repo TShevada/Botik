@@ -385,9 +385,6 @@ async def handle_admin_decision(message: types.Message):
         )
         await message.answer(f"Заявка {user_id} отклонена")
 
-@app.route('/')
-def home():
-    return "Hello, your bot is working!"
 
 
 async def main():
