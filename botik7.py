@@ -655,7 +655,7 @@ async def cancel_purchase(message: types.Message):
     }[lang], reply_markup=get_menu_keyboard(lang))
 
         
-        await message.answer(confirmation, reply_markup=keyboard)
+    await message.answer(confirmation, reply_markup=keyboard)
     except Exception as e:
         logger.error(f"Error in get_phone handler: {e}")
         lang = user_lang.get(message.from_user.id, "en")
