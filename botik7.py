@@ -678,7 +678,7 @@ async def confirm_purchase(message: types.Message):
               f"{TICKET_TYPES[user_data[message.from_user.id]['ticket_type']]['en']['notice']}"
     }[lang]
     
-    await message.answer(payment_info, reply_markup=get_menu_keyboard(lang)
+    await message.answer(payment_info, reply_markup=get_menu_keyboard(lang))
     
     lang = user_data[message.from_user.id].get("lang", "en")
     user_data[message.from_user.id]["step"] = "payment"
