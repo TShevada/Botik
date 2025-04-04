@@ -320,7 +320,7 @@ async def handle_other_commands(message: types.Message, lang: str):
             "Dil seçin:" if lang == "az" else
             "Select language:",
             reply_markup=get_lang_keyboard())
-        )
+        
     else:
         await message.answer(
             "Неизвестная команда" if lang == "ru" else
