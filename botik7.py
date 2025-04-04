@@ -195,25 +195,36 @@ async def tickets_menu_handler(message: types.Message):
         reply_markup=get_ticket_type_keyboard(lang))
 
 @dp.message(F.text)
+@dp.message(F.text)
 async def handle_text_messages(message: types.Message):
-    # First check if we should process this as name/phone input
+    # First check if we're in the middle of a ticket purchase
     if message.from_user.id in user_data:
         current_step = user_data[message.from_user.id].get("step")
+        
         if current_step == "name":
             await process_name_input(message)
             return
         elif current_step == "phone":
             await process_phone_input(message)
             return
+        elif current_step == "confirm":
+            return  # Let the confirm handler deal with this
     
-    # Otherwise handle as regular command
     lang = user_lang.get(message.from_user.id, "en")
     
+    
     # Check ticket type selection
-    selected_ticket = next(
-        (t for t, data in TICKET_TYPES.items() if message.text == data[lang]["name"]),
-        None
-    )
+     selected_ticket = None
+    for ticket_type, data in TICKET_TYPES.items():
+        if message.text == data[lang]["name"]:
+            selected_ticket = ticket_type
+            break
+    
+    if selected_ticket:
+        await process_ticket_selection(message, selected_ticket, lang)
+    else:
+        await handle_other_commands(message, lang)
+            
     
     if selected_ticket:
         await process_ticket_selection(message, selected_ticket, lang)
@@ -239,7 +250,9 @@ async def handle_text_messages(message: types.Message):
     elif message.text in ["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]:
         await handle_back(message)
 
+
 async def process_ticket_selection(message: types.Message, ticket_type: str, lang: str):
+    """Handle ticket type selection"""
     await message.answer(TICKET_TYPES[ticket_type][lang]["full_info"])
     
     user_data[message.from_user.id] = {
@@ -257,6 +270,7 @@ async def process_ticket_selection(message: types.Message, ticket_type: str, lan
     )
 
 async def process_name_input(message: types.Message):
+    """Process name input after ticket selection"""
     lang = user_data[message.from_user.id].get("lang", "en")
     
     if not message.text or len(message.text) < 2:
