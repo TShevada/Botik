@@ -199,35 +199,53 @@ async def select_ticket(message: types.Message):
 
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
 async def get_name(message: types.Message):
-    user_id = message.from_user.id
-    lang = user_data[user_id]["lang"]
-    
-    if len(message.text.split()) < 2:
-        await message.answer("Please enter both first and last name")
-        return
+    try:
+        # First check if we have text content
+        if not message.text:
+            lang = user_data.get(message.from_user.id, {}).get("lang", "en")
+            error_msg = {
+                "ru": "Пожалуйста, введите текст",
+                "az": "Zəhmət olmasa, mətn daxil edin",
+                "en": "Please enter text"
+            }[lang]
+            await message.answer(error_msg)
+            return
 
-    user_data[user_id]["name"] = message.text
-    user_data[user_id]["step"] = "phone"
+        # Then validate name input (at least 2 words for name+surname)
+        if len(message.text.split()) < 2:
+            lang = user_data[message.from_user.id].get("lang", "en")
+            error_msg = {
+                "ru": "Пожалуйста, введите имя и фамилию",
+                "az": "Zəhmət olmasa, ad və soyadınızı daxil edin",
+                "en": "Please enter both first and last name"
+            }[lang]
+            await message.answer(error_msg)
+            return
 
-    await message.answer(
-        "Введите номер телефона:" if lang == "ru" else
-        "Telefon nömrənizi daxil edin:" if lang == "az" else
-        "Enter your phone number:"
-    )
-
-@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "phone")
-async def get_phone(message: types.Message):
-    user_id = message.from_user.id
-    lang = user_data[user_id]["lang"]
-    phone = message.text
-
-    if not phone.replace('+', '').isdigit():
-        await message.answer("Please enter a valid phone number")
-        return
-
-    user_data[user_id]["phone"] = phone
-    user_data[user_id]["step"] = "payment"
-
+        # Store the name and move to next step
+        user_data[message.from_user.id]["name"] = message.text
+        user_data[message.from_user.id]["step"] = "phone"
+        lang = user_data[message.from_user.id].get("lang", "en")
+        
+        prompt = {
+            "ru": "Теперь введите ваш номер телефона:",
+            "az": "İndi telefon nömrənizi daxil edin:",
+            "en": "Now please enter your phone number:"
+        }[lang]
+        
+        await message.answer(prompt)
+        
+    except Exception as e:
+        logger.error(f"Error in get_name handler: {e}")
+        lang = user_lang.get(message.from_user.id, "en")
+        error_msg = {
+            "ru": "Произошла ошибка, пожалуйста, попробуйте снова",
+            "az": "Xəta baş verdi, zəhmət olmasa yenidən cəhd edin",
+            "en": "An error occurred, please try again"
+        }[lang]
+        await message.answer(error_msg, reply_markup=get_menu_keyboard(lang))
+        if message.from_user.id in user_data:
+            del user_data[message.from_user.id]
     await message.answer(
         f"Оплатите {user_data[user_id]['price']} на карту: {PAYMENT_CARD}\n"
         "Отправьте скриншот оплаты." if lang == "ru" else
