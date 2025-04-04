@@ -124,9 +124,19 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str):
 
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
+    try:
+        if os.path.exists(WELCOME_BANNER):
+            await message.answer_photo(types.InputFile(WELCOME_BANNER))
+    except Exception as e:
+        logger.error(f"Banner error: {e}")
+    
+    # Set default language to Russian
+    user_lang[message.from_user.id] = "ru"  # Change to "az" or "en" if you prefer
+    
+    # Show main menu immediately
     await message.answer(
-        "Выберите язык / Select language / Dil seçin:",
-        reply_markup=get_lang_keyboard()
+        "Добро пожаловать! Выберите действие:",  # "Welcome! Choose action:"
+        reply_markup=get_menu_keyboard("ru")     # Using default language
     )
 
 @dp.message(F.text.in_(["🇷🇺 Русский", "🇦🇿 Azərbaycan", "🇬🇧 English"]))
@@ -137,12 +147,14 @@ async def set_language(message: types.Message):
         "🇬🇧 English": "en"
     }
     user_lang[message.from_user.id] = lang_map[message.text]
-    await message.answer(
-        "Язык установлен" if lang_map[message.text] == "ru" else 
-        "Dil seçildi" if lang_map[message.text] == "az" else 
-        "Language set",
-        reply_markup=get_menu_keyboard(lang_map[message.text])
-    )
+    
+    confirmation = {
+        "ru": "Язык установлен. Выберите действие:",
+        "az": "Dil seçildi. Əməliyyat seçin:",
+        "en": "Language set. Please choose:"
+    }[lang_map[message.text]]
+    
+    await message.answer(confirmation, reply_markup=get_menu_keyboard(lang_map[message.text]))
 
 @dp.message(F.text.in_(["🎫 Билеты", "🎫 Biletlər", "🎫 Tickets"]))
 async def tickets_menu(message: types.Message):
