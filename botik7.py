@@ -6,10 +6,10 @@ import string
 from datetime import datetime
 from collections import defaultdict
 from typing import Dict, Any
-
+from aiohttp import web
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
-from aiogram.filters import Command, CommandObject
+from aiogram.filters import Command
 from aiogram.types import (
     InlineKeyboardButton, 
     InlineKeyboardMarkup, 
@@ -20,6 +20,7 @@ from aiogram.types import (
 # Configuration
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 ADMIN_ID = 1291104906
+PORT = int(os.getenv("PORT", 8080))  # Required for Render
 PAYMENT_CARD = "4169 7388 9268 3164"
 
 # Setup
@@ -164,6 +165,7 @@ TICKET_TYPES = {
 }
 
 # Handlers
+
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
     await message.answer("Выберите язык / Select language / Dil seçin:", reply_markup=get_lang_keyboard())
@@ -190,51 +192,32 @@ async def tickets_menu_handler(message: types.Message):
         "Выберите тип билета:" if lang == "ru" else 
         "Bilet növünü seçin:" if lang == "az" else 
         "Select ticket type:",
-        reply_markup=get_ticket_type_keyboard(lang)
-    )
-
-@dp.message(F.text.in_(["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]))
-async def handle_back(message: types.Message):
-    lang = user_lang.get(message.from_user.id, "en")
-    await message.answer(
-        "Главное меню" if lang == "ru" else
-        "Əsas menyu" if lang == "az" else
-        "Main menu",
-        reply_markup=get_menu_keyboard(lang)
+        reply_markup=get_ticket_type_keyboard(lang))
     )
 
 @dp.message(F.text)
 async def handle_text_messages(message: types.Message):
-    # Check if user is in the middle of a process
-    if message.from_user.id in user_data and user_data[message.from_user.id].get("step") in ["name", "phone", "confirm"]:
-        return
-        
+    # First check if we should process this as name/phone input
+    if message.from_user.id in user_data:
+        current_step = user_data[message.from_user.id].get("step")
+        if current_step == "name":
+            await process_name_input(message)
+            return
+        elif current_step == "phone":
+            await process_phone_input(message)
+            return
+    
+    # Otherwise handle as regular command
     lang = user_lang.get(message.from_user.id, "en")
     
-    # Check if this is a ticket type selection
-    selected_ticket = None
-    for ticket_type, data in TICKET_TYPES.items():
-        if message.text == data[lang]["name"]:
-            selected_ticket = ticket_type
-            break
+    # Check ticket type selection
+    selected_ticket = next(
+        (t for t, data in TICKET_TYPES.items() if message.text == data[lang]["name"]),
+        None
+    )
     
     if selected_ticket:
-        # Process ticket selection
-        await message.answer(TICKET_TYPES[selected_ticket][lang]["full_info"])
-        
-        user_data[message.from_user.id] = {
-            "step": "name",
-            "lang": lang,
-            "ticket_type": selected_ticket,
-            "ticket_price": TICKET_TYPES[selected_ticket][lang]["name"].split("—")[1].strip()
-        }
-        
-        await message.answer(
-            "Для покупки введите ваше Имя и Фамилию:" if lang == "ru" else
-            "Bilet almaq üçün ad və soyadınızı daxil edin:" if lang == "az" else
-            "To buy tickets, enter your First and Last name:",
-            reply_markup=types.ReplyKeyboardRemove()
-        )
+        await process_ticket_selection(message, selected_ticket, lang)
     elif message.text in ["📅 Ближайшие события", "📅 Yaxın tədbirlər", "📅 Upcoming events"]:
         await message.answer(
             "Ближайшие события будут здесь" if lang == "ru" else
@@ -252,13 +235,32 @@ async def handle_text_messages(message: types.Message):
             "Выберите язык:" if lang == "ru" else
             "Dil seçin:" if lang == "az" else
             "Select language:",
-            reply_markup=get_lang_keyboard()
+            reply_markup=get_lang_keyboard())
         )
+    elif message.text in ["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]:
+        await handle_back(message)
 
-@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
-async def get_name(message: types.Message):
+async def process_ticket_selection(message: types.Message, ticket_type: str, lang: str):
+    await message.answer(TICKET_TYPES[ticket_type][lang]["full_info"])
+    
+    user_data[message.from_user.id] = {
+        "step": "name",
+        "lang": lang,
+        "ticket_type": ticket_type,
+        "ticket_price": TICKET_TYPES[ticket_type][lang]["name"].split("—")[1].strip()
+    }
+    
+    await message.answer(
+        "Для покупки введите ваше Имя и Фамилию:" if lang == "ru" else
+        "Bilet almaq üçün ad və soyadınızı daxil edin:" if lang == "az" else
+        "To buy tickets, enter your First and Last name:",
+        reply_markup=types.ReplyKeyboardRemove()
+    )
+
+async def process_name_input(message: types.Message):
+    lang = user_data[message.from_user.id].get("lang", "en")
+    
     if not message.text or len(message.text) < 2:
-        lang = user_data[message.from_user.id].get("lang", "en")
         await message.answer(
             "Введите корректное имя (минимум 2 символа)" if lang == "ru" else
             "Düzgün ad daxil edin (minimum 2 simvol)" if lang == "az" else
@@ -268,7 +270,6 @@ async def get_name(message: types.Message):
         
     user_data[message.from_user.id]["name"] = message.text
     user_data[message.from_user.id]["step"] = "phone"
-    lang = user_data[message.from_user.id].get("lang", "en")
     
     await message.answer(
         "Теперь введите ваш номер телефона:" if lang == "ru" else
@@ -276,13 +277,11 @@ async def get_name(message: types.Message):
         "Now please enter your phone number:"
     )
 
-@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "phone")
-async def get_phone(message: types.Message):
-    phone = message.text
-    cleaned_phone = ''.join(c for c in phone if c.isdigit() or c == '+')
+async def process_phone_input(message: types.Message):
+    lang = user_data[message.from_user.id].get("lang", "en")
+    phone = ''.join(c for c in message.text if c.isdigit() or c == '+')
     
-    if len(cleaned_phone) < 9 or (cleaned_phone.startswith('+') and len(cleaned_phone) < 12):
-        lang = user_data[message.from_user.id].get("lang", "en")
+    if len(phone) < 9 or (phone.startswith('+') and len(phone) < 12):
         await message.answer(
             "Введите корректный номер (минимум 9 цифр)" if lang == "ru" else
             "Düzgün nömrə daxil edin (minimum 9 rəqəm)" if lang == "az" else
@@ -290,15 +289,12 @@ async def get_phone(message: types.Message):
         )
         return
     
-    user_data[message.from_user.id]["phone"] = cleaned_phone
+    user_data[message.from_user.id]["phone"] = phone
     user_data[message.from_user.id]["step"] = "confirm"
-    lang = user_data[message.from_user.id].get("lang", "en")
     ticket_info = TICKET_TYPES[user_data[message.from_user.id]["ticket_type"]][lang]
     
     await message.answer(
-        f"Проверьте данные:\n\n🎟 {ticket_info['name']}\n👤 {user_data[message.from_user.id]['name']}\n📱 {cleaned_phone}" if lang == "ru" else
-        f"Məlumatları yoxlayın:\n\n🎟 {ticket_info['name']}\n👤 {user_data[message.from_user.id]['name']}\n📱 {cleaned_phone}" if lang == "az" else
-        f"Check details:\n\n🎟 {ticket_info['name']}\n👤 {user_data[message.from_user.id]['name']}\n📱 {cleaned_phone}",
+        f"Проверьте данные:\n\n🎟 {ticket_info['name']}\n👤 {user_data[message.from_user.id]['name']}\n📱 {phone}",
         reply_markup=ReplyKeyboardMarkup(
             keyboard=[
                 [KeyboardButton(text="✅ Да" if lang == "ru" else "✅ Bəli" if lang == "az" else "✅ Yes")],
@@ -547,9 +543,28 @@ async def reject_handler(message: types.Message):
         logger.error(f"Reject error: {e}")
         await message.answer("⚠️ Ошибка команды. Формат: /reject_12345 причина")
 
-async def main():
+async def web_app():
+    app = web.Application()
+    app.router.add_get("/", lambda request: web.Response(text="Bot is running"))
+    return app
+
+async def on_startup(bot: Bot):
     await bot.delete_webhook(drop_pending_updates=True)
+
+async def main():
+    # Start the bot
     await dp.start_polling(bot)
+    
+    # Start web app for Render port binding
+    app = await web_app()
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, port=PORT)
+    await site.start()
+    
+    # Keep the application running
+    while True:
+        await asyncio.sleep(3600)
 
 if __name__ == "__main__":
     asyncio.run(main())
