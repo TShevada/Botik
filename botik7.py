@@ -347,7 +347,7 @@ async def confirm_purchase(message: types.Message):
         "и отправьте скриншот оплаты.\n\n"
         f"{TICKET_TYPES[user_data[message.from_user.id]['ticket_type']][lang]['note']}",
         reply_markup=get_menu_keyboard(lang))
-    )
+    
 
 @dp.message(F.text.in_(["❌ Нет", "❌ Xeyr", "❌ No"]))
 async def cancel_purchase(message: types.Message):
@@ -359,7 +359,7 @@ async def cancel_purchase(message: types.Message):
             "Alış etmək ləğv edildi" if lang == "az" else
             "Purchase canceled",
             reply_markup=get_menu_keyboard(lang))
-        )
+        
 
 @dp.message(F.photo, lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
 async def handle_payment_photo(message: types.Message):
@@ -375,7 +375,7 @@ async def handle_payment_photo(message: types.Message):
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "ticket_id": ticket_id,
             "username": message.from_user.username or "N/A"
-        }
+            )
         
         # Notify admin
         ticket_name = TICKET_TYPES[pending_approvals[message.from_user.id]["ticket_type"]]["ru"]["name"]
