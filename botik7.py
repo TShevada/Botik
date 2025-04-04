@@ -16,6 +16,9 @@ from aiogram.types import (
 )
 from collections import defaultdict
 from flask import Flask
+import telegram
+from telegram import Bot, Update, ParseMode
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 # ===== CONFIGURATION =====
 TOKEN = "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y"
 YOUR_TELEGRAM_ID = 1291104906  # Your admin ID
@@ -394,9 +397,12 @@ def home():
     return "Hello, your bot is working!"
 
 
-async def main():
-    await dp.start_polling(bot)
+def main():
+    # Your bot's polling logic
+    from telegram.ext import Updater
+    updater = Updater(token=os.environ['BOT_TOKEN'], use_context=True)
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))  # Get port from environment or default to 8080
-    app.run(host='0.0.0.0', port=port)
+    main()
