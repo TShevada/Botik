@@ -20,6 +20,7 @@ from aiogram.types import (
 TOKEN = os.getenv("BOT_TOKEN")
 YOUR_TELEGRAM_ID = 1291104906
 PAYMENT_CARD = "4169 7388 9268 3164"
+WELCOME_BANNER = "welcome.jpg"  # Make sure this file exists in your project
 # ========================
 
 # Setup
@@ -29,7 +30,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)  # Using HTML by default
+bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
 # Storage
@@ -39,6 +40,7 @@ pending_approvals = {}
 ticket_codes = {}
 orders = []
 statistics = defaultdict(int)
+
 # Ticket Types
 TICKET_TYPES = {
     "standard": {
@@ -75,23 +77,19 @@ def get_lang_keyboard():
         ],
         resize_keyboard=True
     )
-def get_lang_keyboard():
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="🇷🇺 Русский"), KeyboardButton(text="🇦🇿 Azərbaycan")],
-            [KeyboardButton(text="🇬🇧 English")]
-        ],
-        resize_keyboard=True
-    )
 
 def get_menu_keyboard(lang):
-    text = {
-        "ru": "🎫 Билеты",
-        "az": "🎫 Biletlər",
-        "en": "🎫 Tickets"
-    }.get(lang, "🎫 Tickets")
     return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=text)]],
+        keyboard=[
+            [
+                KeyboardButton(text="🎫 Билеты" if lang == "ru" else "🎫 Biletlər" if lang == "az" else "🎫 Tickets"),
+                KeyboardButton(text="📅 Ближайшие события" if lang == "ru" else "📅 Yaxın tədbirlər" if lang == "az" else "📅 Upcoming events")
+            ],
+            [
+                KeyboardButton(text="📞 Контакты" if lang == "ru" else "📞 Əlaqə" if lang == "az" else "📞 Contacts"),
+                KeyboardButton(text="🌐 Сменить язык" if lang == "ru" else "🌐 Dil dəyiş" if lang == "az" else "🌐 Change language")
+            ]
+        ],
         resize_keyboard=True
     )
 
@@ -102,15 +100,10 @@ def get_ticket_type_keyboard(lang):
         price = names[lang]["price"]
         buttons.append([KeyboardButton(text=f"{name} ({price})")])
     
-    back_text = {
-        "ru": "⬅️ Назад",
-        "az": "⬅️ Geri",
-        "en": "⬅️ Back"
-    }.get(lang, "⬅️ Back")
+    back_text = "⬅️ Назад" if lang == "ru" else "⬅️ Geri" if lang == "az" else "⬅️ Back"
     buttons.append([KeyboardButton(text=back_text)])
     
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
-
 
 def get_admin_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -124,25 +117,28 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str):
         ticket_name = TICKET_TYPES[ticket_type]["ru"]["name"]
         await bot.send_message(
             YOUR_TELEGRAM_ID,
-            f"<b>🆕 Новая заявка:</b>\n\n"
-            f"👤 <b>ID:</b> {user_id}\n"
-            f"📛 <b>Имя:</b> {name}\n"
-            f"📱 <b>Телефон:</b> {phone}\n"
-            f"🎫 <b>Тип:</b> {ticket_name}\n\n"
-            f"<b>Ответьте:</b>\n"
+            f"🆕 Новая заявка:\n\n"
+            f"👤 ID: {user_id}\n"
+            f"📛 Имя: {name}\n"
+            f"📱 Телефон: {phone}\n"
+            f"🎫 Тип: {ticket_name}\n\n"
+            f"Ответьте:\n"
             f"/accept_{user_id} - подтвердить\n"
             f"/reject_{user_id} - отклонить"
         )
     except Exception as e:
         logger.error(f"Admin notify error: {e}")
+
 # ================= HANDLERS =================
+
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
-    user_lang[message.from_user.id] = "ru"
-    await message.answer(
-        "<b>Добро пожаловать!</b> Выберите действие:",
-        reply_markup=get_menu_keyboard("ru")
-    )
+    try:
+        if os.path.exists(WELCOME_BANNER):
+            await message.answer_photo(types.InputFile(WELCOME_BANNER))
+    except Exception as e:
+        logger.error(f"Banner error: {e}")
+    await message.answer("Выберите язык / Select language / Dil seçin:", reply_markup=get_lang_keyboard())
 
 @dp.message(F.text.in_(["🇷🇺 Русский", "🇦🇿 Azərbaycan", "🇬🇧 English"]))
 async def set_language(message: types.Message):
@@ -154,20 +150,56 @@ async def set_language(message: types.Message):
     user_lang[message.from_user.id] = lang_map[message.text]
     
     confirmation = {
-        "ru": "<b>Язык установлен.</b> Выберите действие:",
-        "az": "<b>Dil seçildi.</b> Əməliyyat seçin:",
-        "en": "<b>Language set.</b> Please choose:"
+        "ru": "Язык установлен: Русский",
+        "az": "Dil seçildi: Azərbaycan",
+        "en": "Language set: English"
     }[lang_map[message.text]]
     
     await message.answer(confirmation, reply_markup=get_menu_keyboard(lang_map[message.text]))
+
+@dp.message(F.text.in_(["📅 Ближайшие события", "📅 Yaxın tədbirlər", "📅 Upcoming events"]))
+async def events_handler(message: types.Message):
+    lang = user_lang.get(message.from_user.id, "en")
+    events_info = {
+        "ru": "Текущий ивент: Afro-Party в Voodoo!\n"
+              "📅 Дата: 27 апреля 2025\n"
+              "🕒 Время: 18:00 - 00:00\n"
+              "📍 Место: Рестобар Voodoo, ТРЦ Наргиз Молл, 3 этаж",
+        "az": "Cari tədbir: Afro-Party Voodoo-da!\n"
+              "📅 Tarix: 27 Aprel 2025\n"
+              "🕒 Vaxt: 18:00 - 00:00\n"
+              "📍 Yer: Voodoo Restobar, Nargiz Mall, 3-cü mərtəbə",
+        "en": "Current event: Afro-Party at Voodoo!\n"
+              "📅 Date: April 27, 2025\n"
+              "🕒 Time: 6:00 PM - 12:00 AM\n"
+              "📍 Location: Voodoo Restobar, Nargiz Mall, 3rd floor"
+    }[lang]
+    await message.answer(events_info, reply_markup=get_menu_keyboard(lang))
+
+@dp.message(F.text.in_(["📞 Контакты", "📞 Əlaqə", "📞 Contacts"]))
+async def contacts_handler(message: types.Message):
+    lang = user_lang.get(message.from_user.id, "en")
+    contact_info = {
+        "ru": "📞 Контакты:\nТелефон: +994 10 531 24 06",
+        "az": "📞 Əlaqə:\nTelefon: +994 10 531 24 06",
+        "en": "📞 Contacts:\nPhone: +994 10 531 24 06"
+    }[lang]
+    await message.answer(contact_info, reply_markup=get_menu_keyboard(lang))
+
+@dp.message(F.text.in_(["🌐 Сменить язык", "🌐 Dil dəyiş", "🌐 Change language"]))
+async def change_lang_handler(message: types.Message):
+    await message.answer(
+        "Выберите язык / Select language / Dil seçin:",
+        reply_markup=get_lang_keyboard()
+    )
 
 @dp.message(F.text.in_(["🎫 Билеты", "🎫 Biletlər", "🎫 Tickets"]))
 async def tickets_menu(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     await message.answer(
-        "<b>Выберите тип билета:</b>" if lang == "ru" else
-        "<b>Bilet növünü seçin:</b>" if lang == "az" else
-        "<b>Select ticket type:</b>",
+        "Выберите тип билета:" if lang == "ru" else
+        "Bilet növünü seçin:" if lang == "az" else
+        "Select ticket type:",
         reply_markup=get_ticket_type_keyboard(lang)
     )
 @dp.message(F.text.regexp(r"(Стандарт|Standart|Standard|VIP.*|Exclusive.*)"))
