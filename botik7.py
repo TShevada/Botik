@@ -13,7 +13,7 @@ from collections import defaultdict
 from aiohttp import web
 
 # ===== CONFIGURATION =====
-TOKEN = "7501232713:AAEQG8REnPf83FqVkVqus-ZnJBKDnSt9Qvo"
+TOKEN = "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y"
 YOUR_TELEGRAM_ID = 1291104906
 PAYMENT_CARD = "4169 7388 9268 3164"
 # ========================
