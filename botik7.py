@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 bot = Bot(token=TOKEN, parse_mode=ParseMode.MARKDOWN)
 dp = Dispatcher()
-
+app = Flask(__name__)
 # In-memory storage
 user_lang = {}
 user_data = {}
@@ -389,9 +389,14 @@ async def handle_admin_decision(message: types.Message):
         )
         await message.answer(f"Заявка {user_id} отклонена")
 
+@app.route('/')
+def home():
+    return "Hello, your bot is working!"
+
+
 async def main():
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))  # Use PORT if exists, otherwise 8080
+    port = int(os.environ.get('PORT', 8080))  # Get port from environment or default to 8080
     app.run(host='0.0.0.0', port=port)
