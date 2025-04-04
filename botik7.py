@@ -6,10 +6,8 @@ import string
 from datetime import datetime
 from collections import defaultdict
 from typing import Dict, Any
-
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
-from aiogram.client.default import DefaultBotProperties  # (Correct for aiogram 3.x)
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
     InlineKeyboardButton, 
@@ -28,9 +26,8 @@ PAYMENT_CARD = "4169 7388 9268 3164"
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-bot = Bot(token, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN))
+bot = Bot(token=TOKEN, parse_mode=ParseMode.MARKDOWN)
 dp = Dispatcher()
-
 # Data Storage
 user_lang = {}
 user_data = {}
