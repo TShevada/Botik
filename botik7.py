@@ -21,7 +21,7 @@ from aiogram.types import (
 # Configuration
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 ADMIN_ID = 1291104906
-PORT = int(os.getenv("PORT", "8080")
+PORT = int(os.getenv("PORT", "8080"))  # Now properly closed
 PAYMENT_CARD = "4169 7388 9268 3164"
 
 # Setup
