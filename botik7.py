@@ -5,10 +5,10 @@ import os
 import random
 import string
 from datetime import datetime
-from aiogram import Bot, Dispatcher, types
+from aiogram import Bot, Dispatcher, types, F
+from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
-from aiogram.enums import ParseMode
 from collections import defaultdict
 from aiohttp import web
 
@@ -28,17 +28,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 os.makedirs(PHOTOS_DIR, exist_ok=True)
 
-bot = Bot(token=TOKEN)
+bot = Bot(token=TOKEN, parse_mode=ParseMode.MARKDOWN)
 dp = Dispatcher()
 
-# Storage
+# Storage (using dictionaries since we're not using FSM storage)
 user_lang = {}
 user_data = {}
 save_counter = defaultdict(int)
 admin_pending_actions = {}
 pending_approvals = {}
-ticket_codes = {} 
-
+ticket_codes = {}
 # Ticket Prices - Updated structure
 TICKET_TYPES = {
     "standard": {
@@ -980,28 +979,35 @@ async def handle_unmatched_messages(message: types.Message):
             "en": "Please use the menu buttons"
         }[lang]
         await message.answer(response, reply_markup=get_menu_keyboard(lang))
+async def on_startup():
+    await bot.send_message(YOUR_TELEGRAM_ID, "🤖 Bot started successfully!")
 
 async def run_bot():
     await dp.start_polling(bot)
 
 async def http_handler(request):
-    return web.Response(text="🤖 Бот работает в режиме polling!")
-async def on_startup():
-    await bot.send_message(YOUR_TELEGRAM_ID, "🤖 Bot started successfully!")
+    return web.Response(text="🤖 Bot is running!")
 
 async def main():
-    # Start the bot
+    # Start bot in background
     await on_startup()
-    await dp.start_polling(bot)
+    bot_task = asyncio.create_task(run_bot())
 
-    # If you need the web server (optional):
+    # Configure HTTP server for Render
     app = web.Application()
-    app.router.add_get("/", lambda request: web.Response(text="Bot is running"))
+    app.router.add_get("/", http_handler)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
-    logger.info(f"Server started on port {PORT}")
 
-if __name__ == '__main__':
-    asyncio.run(main())
+    logger.info(f"🚀 Bot running on port {PORT}")
+    await asyncio.Event().wait()  # Run forever
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped")
+    except Exception as e:
+        logger.critical(f"Fatal error: {e}")
