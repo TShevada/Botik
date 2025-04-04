@@ -399,7 +399,7 @@ async def handle_payment_photo(message: types.Message):
             f"✅ Təşəkkürlər! {ticket_id} nömrəli müraciətiniz nəzərdən keçirilir" if lang == "az" else
             f"✅ Thank you! Application #{ticket_id} is under review",
             reply_markup=get_menu_keyboard(lang))
-        )
+        
         del user_data[message.from_user.id]
     except Exception as e:
         logger.error(f"Payment error: {e}")
