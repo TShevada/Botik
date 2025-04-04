@@ -15,7 +15,7 @@ from aiogram.types import (
     InlineKeyboardButton
 )
 from collections import defaultdict
-
+from flask import Flask
 # ===== CONFIGURATION =====
 TOKEN = "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y"
 YOUR_TELEGRAM_ID = 1291104906  # Your admin ID
@@ -392,5 +392,6 @@ async def handle_admin_decision(message: types.Message):
 async def main():
     await dp.start_polling(bot)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8080))  # Use PORT if exists, otherwise 8080
+    app.run(host='0.0.0.0', port=port)
