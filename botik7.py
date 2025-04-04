@@ -6,6 +6,7 @@ import string
 from datetime import datetime
 from collections import defaultdict
 from typing import Dict, Any
+
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandObject
@@ -19,29 +20,32 @@ from aiogram.types import (
 # Configuration
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 ADMIN_ID = 1291104906
-PORT = int(os.getenv("PORT", "8080"))  # Now properly closed
 PAYMENT_CARD = "4169 7388 9268 3164"
 
 # Setup
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
 
 bot = Bot(token=TOKEN, parse_mode=ParseMode.MARKDOWN)
 dp = Dispatcher()
+
 # Data Storage
-user_lang = {}
-user_data = {}
-pending_approvals = {}
+user_lang: Dict[int, str] = {}
+user_data: Dict[int, Dict[str, Any]] = {}
+pending_approvals: Dict[int, Dict[str, Any]] = {}
 approved_tickets = defaultdict(list)
 
 # Helper Functions
-def generate_ticket_id():
+def generate_ticket_id() -> str:
     return ''.join(random.choices(string.digits, k=6))
 
 def is_admin(user_id: int) -> bool:
     return user_id == ADMIN_ID
 
-def get_lang_keyboard():
+def get_lang_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="🇷🇺 Русский"), KeyboardButton(text="🇦🇿 Azərbaycan")],
@@ -50,47 +54,43 @@ def get_lang_keyboard():
         resize_keyboard=True
     )
 
-def get_menu_keyboard(lang):
-    if lang == "ru":
-        return ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text="🎫 Билеты")],
-                [KeyboardButton(text="📅 Ближайшие события")],
-                [KeyboardButton(text="📞 Контакты")],
-                [KeyboardButton(text="🌐 Сменить язык")]
-            ],
-            resize_keyboard=True
-        )
-    elif lang == "az":
-        return ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text="🎫 Biletlər")],
-                [KeyboardButton(text="📅 Yaxın tədbirlər")],
-                [KeyboardButton(text="📞 Əlaqə")],
-                [KeyboardButton(text="🌐 Dil dəyiş")]
-            ],
-            resize_keyboard=True
-        )
-    else:  # English
-        return ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text="🎫 Tickets")],
-                [KeyboardButton(text="📅 Upcoming events")],
-                [KeyboardButton(text="📞 Contacts")],
-                [KeyboardButton(text="🌐 Change language")]
-            ],
-            resize_keyboard=True
-        )
+def get_menu_keyboard(lang: str) -> ReplyKeyboardMarkup:
+    buttons = {
+        "ru": [
+            [KeyboardButton(text="🎫 Билеты")],
+            [KeyboardButton(text="📅 Ближайшие события")],
+            [KeyboardButton(text="📞 Контакты")],
+            [KeyboardButton(text="🌐 Сменить язык")]
+        ],
+        "az": [
+            [KeyboardButton(text="🎫 Biletlər")],
+            [KeyboardButton(text="📅 Yaxın tədbirlər")],
+            [KeyboardButton(text="📞 Əlaqə")],
+            [KeyboardButton(text="🌐 Dil dəyiş")]
+        ],
+        "en": [
+            [KeyboardButton(text="🎫 Tickets")],
+            [KeyboardButton(text="📅 Upcoming events")],
+            [KeyboardButton(text="📞 Contacts")],
+            [KeyboardButton(text="🌐 Change language")]
+        ]
+    }
+    return ReplyKeyboardMarkup(keyboard=buttons[lang], resize_keyboard=True)
 
-def get_ticket_type_keyboard(lang):
+def get_ticket_type_keyboard(lang: str) -> ReplyKeyboardMarkup:
     buttons = []
     for ticket_type in TICKET_TYPES:
         buttons.append([KeyboardButton(text=TICKET_TYPES[ticket_type][lang]["name"])])
     
-    back_text = "⬅️ Назад" if lang == "ru" else "⬅️ Geri" if lang == "az" else "⬅️ Back"
-    buttons.append([KeyboardButton(text=back_text)])
+    back_text = {
+        "ru": "⬅️ Назад",
+        "az": "⬅️ Geri", 
+        "en": "⬅️ Back"
+    }
+    buttons.append([KeyboardButton(text=back_text[lang])])
     
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+
 
 # Ticket Types with Payment Notes
 TICKET_TYPES = {
@@ -609,10 +609,8 @@ async def handle_admin_approval(message: types.Message):
                            "/reject_12345 причина - отклонить")
 
 async def main():
-    # Start polling (ignore PORT since we're not using webhooks)
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
