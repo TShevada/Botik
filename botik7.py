@@ -654,20 +654,6 @@ async def cancel_purchase(message: types.Message):
         "en": "Order canceled. You can start again."
     }[lang], reply_markup=get_menu_keyboard(lang))
 
-        
-    await message.answer(confirmation, reply_markup=keyboard)
-    except Exception as e:
-        logger.error(f"Error in get_phone handler: {e}")
-        lang = user_lang.get(message.from_user.id, "en")
-        error_msg = {
-            "ru": "Произошла ошибка, пожалуйста, начните заново",
-            "az": "Xəta baş verdi, zəhmət olmasa yenidən başlayın",
-            "en": "An error occurred, please start over"
-        }[lang]
-        await message.answer(error_msg, reply_markup=get_menu_keyboard(lang))
-        if message.from_user.id in user_data:
-            del user_data[message.from_user.id]
-
 @dp.message(F.text.in_(["✅ Да", "✅ Bəli", "✅ Yes"]))
 async def confirm_purchase(message: types.Message):
     if message.from_user.id not in user_data:
@@ -676,6 +662,23 @@ async def confirm_purchase(message: types.Message):
                             "Zəhmət olmasa, prosesi yenidən başladın" if lang == "az" else 
                             "Please start the process again")
         return
+    
+    lang = user_data[message.from_user.id].get("lang", "en")
+    user_data[message.from_user.id]["step"] = "payment"
+    
+    payment_info = {
+        "ru": f"Оплатите {user_data[message.from_user.id]['ticket_price']} на карту: `{PAYMENT_CARD}`\n"
+              "и отправьте скриншот оплаты.\n\n"
+              f"{TICKET_TYPES[user_data[message.from_user.id]['ticket_type']]['ru']['notice']}",
+        "az": f"{user_data[message.from_user.id]['ticket_price']} məbləğini kartla ödəyin: `{PAYMENT_CARD}`\n"
+              "və ödəniş skrinşotu göndərin.\n\n"
+              f"{TICKET_TYPES[user_data[message.from_user.id]['ticket_type']]['az']['notice']}",
+        "en": f"Please pay {user_data[message.from_user.id]['ticket_price']} to card: `{PAYMENT_CARD}`\n"
+              "and send payment screenshot.\n\n"
+              f"{TICKET_TYPES[user_data[message.from_user.id]['ticket_type']]['en']['notice']}"
+    }[lang]
+    
+    await message.answer(payment_info, reply_markup=get_menu_keyboard(lang)
     
     lang = user_data[message.from_user.id].get("lang", "en")
     user_data[message.from_user.id]["step"] = "payment"
