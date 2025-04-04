@@ -510,25 +510,34 @@ async def back_handler(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     await message.answer("Главное меню" if lang == "ru" else "Ana menyu" if lang == "az" else "Main menu", 
                         reply_markup=get_menu_keyboard(lang))
+from aiogram import types, F
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
+from aiogram.utils.keyboard import ReplyKeyboardRemove
+from loader import dp, user_data, user_lang, TICKET_TYPES, PAYMENT_CARD, logger
+from keyboards import get_menu_keyboard
 
+# 1. Handle Ticket Type Selection
 @dp.message(F.text.regexp(r"(Стандарт|Standart|Standard|VIP.*|Exclusive.*|Эксклюзив|Eksklüziv).*"))
 async def ticket_type_handler(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
+    text = message.text.lower()
     
-    ticket_type = None
-    if "Стандарт" in message.text or "Standart" in message.text or "Standard" in message.text:
+    if "стандарт" in text or "standart" in text or "standard" in text:
         ticket_type = "standard"
-    elif "VIP Одиночный" in message.text or "VIP Tək" in message.text or "VIP Single" in message.text:
+    elif "vip одиночный" in text or "vip tək" in text or "vip single" in text:
         ticket_type = "vip_single"
-    elif "VIP Столик" in message.text or "VIP Masalıq" in message.text or "VIP Table" in message.text:
+    elif "vip столик" in text or "vip masalıq" in text or "vip table" in text:
         ticket_type = "vip_table"
-    elif "Exclusive" in message.text or "Эксклюзив" in message.text or "Eksklüziv" in message.text:
+    elif "exclusive" in text or "эксклюзив" in text or "eksklüziv" in text:
         ticket_type = "exclusive_table"
-    
-    if not ticket_type:
-        await message.answer("Неверный тип билета" if lang == "ru" else "Yanlış bilet növü" if lang == "az" else "Invalid ticket type")
+    else:
+        await message.answer({
+            "ru": "Неверный тип билета",
+            "az": "Yanlış bilet növü",
+            "en": "Invalid ticket type"
+        }[lang])
         return
-    
+
     user_data[message.from_user.id] = {
         "step": "name",
         "lang": lang,
@@ -537,118 +546,114 @@ async def ticket_type_handler(message: types.Message):
         "name": None,
         "phone": None
     }
-    
-    prompt = {
+
+    await message.answer({
         "ru": "Для покупки билетов введите ваше Имя и Фамилию:",
         "az": "Bilet almaq üçün ad və soyadınızı daxil edin:",
         "en": "To buy tickets, please enter your First and Last name:"
-    }[lang]
-    
-    await message.answer(prompt, reply_markup=types.ReplyKeyboardRemove())
+    }[lang], reply_markup=ReplyKeyboardRemove())
 
+# 2. Handle Name Input
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
 async def get_name(message: types.Message):
-    try:
-        if message.from_user.id not in user_data:
-            lang = user_lang.get(message.from_user.id, "en")
-            await message.answer(
-                "Пожалуйста, выберите тип билета сначала" if lang == "ru" else
-                "Zəhmət olmasa, əvvəlcə bilet növünü seçin" if lang == "az" else
-                "Please select ticket type first",
-                reply_markup=get_menu_keyboard(lang)
-            )
-            return
+    lang = user_data[message.from_user.id].get("lang", "en")
 
-        if len(message.text.split()) < 2:
-            lang = user_data[message.from_user.id].get("lang", "en")
-            error_msg = {
-                "ru": "Пожалуйста, введите имя и фамилию",
-                "az": "Zəhmət olmasa, ad və soyadınızı daxil edin",
-                "en": "Please enter both first and last name"
-            }[lang]
-            await message.answer(error_msg)
-            return
+    if len(message.text.split()) < 2:
+        await message.answer({
+            "ru": "Пожалуйста, введите имя и фамилию",
+            "az": "Zəhmət olmasa, ad və soyadınızı daxil edin",
+            "en": "Please enter both first and last name"
+        }[lang])
+        return
 
-        user_data[message.from_user.id]["name"] = message.text
-        user_data[message.from_user.id]["step"] = "phone"
-        lang = user_data[message.from_user.id].get("lang", "en")
-        
-        prompt = {
-            "ru": "Теперь введите ваш номер телефона:",
-            "az": "İndi telefon nömrənizi daxil edin:",
-            "en": "Now please enter your phone number:"
-        }[lang]
-        
-        await message.answer(prompt)
-        
-    except Exception as e:
-        logger.error(f"Error in get_name handler: {e}")
-        lang = user_lang.get(message.from_user.id, "en")
-        error_msg = {
-            "ru": "Произошла ошибка, пожалуйста, попробуйте снова",
-            "az": "Xəta baş verdi, zəhmət olmasa yenidən cəhd edin",
-            "en": "An error occurred, please try again"
-        }[lang]
-        await message.answer(error_msg, reply_markup=get_menu_keyboard(lang))
-        if message.from_user.id in user_data:
-            del user_data[message.from_user.id]
+    user_data[message.from_user.id]["name"] = message.text
+    user_data[message.from_user.id]["step"] = "phone"
 
+    await message.answer({
+        "ru": "Теперь введите ваш номер телефона:",
+        "az": "İndi telefon nömrənizi daxil edin:",
+        "en": "Now please enter your phone number:"
+    }[lang])
+
+# 3. Handle Phone Input
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "phone")
 async def get_phone(message: types.Message):
-    try:
-        if message.from_user.id not in user_data:
-            lang = user_lang.get(message.from_user.id, "en")
-            await message.answer("Пожалуйста, начните процесс заново" if lang == "ru" else 
-                                "Zəhmət olmasa, prosesi yenidən başladın" if lang == "az" else 
-                                "Please start the process again")
-            return
+    lang = user_data[message.from_user.id].get("lang", "en")
+    phone = message.text.strip()
 
-        phone = message.text
-        if not phone.replace('+', '').isdigit() or len(phone.replace('+', '')) < 9:
-            lang = user_data[message.from_user.id].get("lang", "en")
-            error_msg = {
-                "ru": "Пожалуйста, введите корректный номер телефона",
-                "az": "Zəhmət olmasa, düzgün telefon nömrəsi daxil edin",
-                "en": "Please enter a valid phone number"
-            }[lang]
-            await message.answer(error_msg)
-            return
-        
-        user_data[message.from_user.id]["phone"] = phone
-        user_data[message.from_user.id]["step"] = "confirm"
-        lang = user_data[message.from_user.id].get("lang", "en")
-        
-        ticket_type = user_data[message.from_user.id]["ticket_type"]
-        ticket_info = TICKET_TYPES[ticket_type][lang]
-        
-        confirmation = {
-            "ru": f"Проверьте ваши данные:\n\n"
-                  f"🎟 Тип билета: {ticket_info['name']}\n"
-                  f"💳 Сумма: {ticket_info['price']}\n"
-                  f"👤 Имя: {user_data[message.from_user.id]['name']}\n"
-                  f"📱 Телефон: {phone}\n\n"
-                  f"Все верно?",
-            "az": f"Məlumatlarınızı yoxlayın:\n\n"
-                  f"🎟 Bilet növü: {ticket_info['name']}\n"
-                  f"💳 Məbləğ: {ticket_info['price']}\n"
-                  f"👤 Ad: {user_data[message.from_user.id]['name']}\n"
-                  f"📱 Telefon: {phone}\n\n"
-                  f"Hər şey düzgündür?",
-            "en": f"Please confirm your details:\n\n"
-                  f"🎟 Ticket type: {ticket_info['name']}\n"
-                  f"💳 Amount: {ticket_info['price']}\n"
-                  f"👤 Name: {user_data[message.from_user.id]['name']}\n"
-                  f"📱 Phone: {phone}\n\n"
-                  f"Is everything correct?"
-        }[lang]
-        
-        keyboard = ReplyKeyboardMarkup(
-            keyboard=[
-                [KeyboardButton(text="✅ Да" if lang == "ru" else "✅ Bəli" if lang == "az" else "✅ Yes")],
-                [KeyboardButton(text="❌ Нет" if lang == "ru" else "❌ Xeyr" if lang == "az" else "❌ No")]
-            ],
-            resize_keyboard=True
-        )
+    if not phone.replace('+', '').isdigit() or len(phone.replace('+', '')) < 9:
+        await message.answer({
+            "ru": "Пожалуйста, введите корректный номер телефона",
+            "az": "Zəhmət olmasa, düzgün telefon nömrəsi daxil edin",
+            "en": "Please enter a valid phone number"
+        }[lang])
+        return
+
+    user_data[message.from_user.id]["phone"] = phone
+    user_data[message.from_user.id]["step"] = "confirm"
+
+    ticket_type = user_data[message.from_user.id]["ticket_type"]
+    ticket_info = TICKET_TYPES[ticket_type][lang]
+
+    confirmation_text = {
+        "ru": f"Проверьте ваши данные:\n\n🎟 Тип билета: {ticket_info['name']}\n💳 Сумма: {ticket_info['price']}\n👤 Имя: {user_data[message.from_user.id]['name']}\n📱 Телефон: {phone}\n\nВсе верно?",
+        "az": f"Məlumatlarınızı yoxlayın:\n\n🎟 Bilet növü: {ticket_info['name']}\n💳 Məbləğ: {ticket_info['price']}\n👤 Ad: {user_data[message.from_user.id]['name']}\n📱 Telefon: {phone}\n\nHər şey düzgündür?",
+        "en": f"Please confirm your details:\n\n🎟 Ticket type: {ticket_info['name']}\n💳 Amount: {ticket_info['price']}\n👤 Name: {user_data[message.from_user.id]['name']}\n📱 Phone: {phone}\n\nIs everything correct?"
+    }[lang]
+
+    confirm_keyboard = ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="✅ Да" if lang == "ru" else "✅ Bəli" if lang == "az" else "✅ Yes")],
+            [KeyboardButton(text="❌ Нет" if lang == "ru" else "❌ Xeyr" if lang == "az" else "❌ No")]
+        ],
+        resize_keyboard=True
+    )
+
+    await message.answer(confirmation_text, reply_markup=confirm_keyboard)
+
+# 4. Handle Confirmation
+@dp.message(F.text.in_(["✅ Да", "✅ Bəli", "✅ Yes"]))
+async def confirm_purchase(message: types.Message):
+    if message.from_user.id not in user_data:
+        lang = user_lang.get(message.from_user.id, "en")
+        await message.answer({
+            "ru": "Пожалуйста, начните процесс заново",
+            "az": "Zəhmət olmasa, prosesi yenidən başladın",
+            "en": "Please start the process again"
+        }[lang])
+        return
+
+    lang = user_data[message.from_user.id]["lang"]
+    user_data[message.from_user.id]["step"] = "payment"
+
+    ticket_type = user_data[message.from_user.id]["ticket_type"]
+    ticket_info = TICKET_TYPES[ticket_type][lang]
+
+    await message.answer(
+        {
+            "ru": f"Оплатите {ticket_info['price']} на карту: `{PAYMENT_CARD}`\n"
+                  f"и отправьте скриншот оплаты.\n\n{ticket_info['notice']}",
+            "az": f"{ticket_info['price']} məbləğini kartla ödəyin: `{PAYMENT_CARD}`\n"
+                  f"və ödəniş skrinşotu göndərin.\n\n{ticket_info['notice']}",
+            "en": f"Please pay {ticket_info['price']} to card: `{PAYMENT_CARD}`\n"
+                  f"and send payment screenshot.\n\n{ticket_info['notice']}"
+        }[lang],
+        reply_markup=get_menu_keyboard(lang),
+        parse_mode="Markdown"
+    )
+
+# 5. Handle Cancellation
+@dp.message(F.text.in_(["❌ Нет", "❌ Xeyr", "❌ No"]))
+async def cancel_purchase(message: types.Message):
+    lang = user_lang.get(message.from_user.id, "en")
+    user_data.pop(message.from_user.id, None)
+    
+    await message.answer({
+        "ru": "Заказ отменен. Можете начать заново.",
+        "az": "Sifariş ləğv edildi. Yenidən başlaya bilərsiniz.",
+        "en": "Order canceled. You can start again."
+    }[lang], reply_markup=get_menu_keyboard(lang))
+
         
         await message.answer(confirmation, reply_markup=keyboard)
     except Exception as e:
