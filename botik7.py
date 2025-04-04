@@ -235,7 +235,7 @@ async def handle_text_messages(message: types.Message):
             "Dil seçin:" if lang == "az" else
             "Select language:",
             reply_markup=get_lang_keyboard())
-        )
+        
     elif message.text in ["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]:
         await handle_back(message)
 
