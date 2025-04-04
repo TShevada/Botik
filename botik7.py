@@ -449,13 +449,20 @@ async def show_approved(message: types.Message):
     
     await message.answer(text)
 
-@dp.message(Command(startswith="approve_"))
-async def approve_handler(message: types.Message, command: CommandObject):
+
+@dp.message(Command("approve"))
+async def approve_handler(message: types.Message):
     if not is_admin(message.from_user.id):
         return
     
     try:
-        user_id = int(command.command.split("_")[1])
+        # Extract user_id from message text (expecting "/approve_12345")
+        args = message.text.split('_')
+        if len(args) < 2:
+            await message.answer("⚠️ Неверный формат команды. Используйте /approve_12345")
+            return
+            
+        user_id = int(args[1])
         data = pending_approvals.get(user_id)
         
         if not data:
@@ -494,13 +501,18 @@ async def approve_handler(message: types.Message, command: CommandObject):
         logger.error(f"Approve error: {e}")
         await message.answer("⚠️ Ошибка команды. Формат: /approve_12345")
 
-@dp.message(Command(startswith="reject_"))
-async def reject_handler(message: types.Message, command: CommandObject):
+@dp.message(Command("reject"))
+async def reject_handler(message: types.Message):
     if not is_admin(message.from_user.id):
         return
     
     try:
-        parts = command.command.split("_", maxsplit=2)
+        # Extract user_id and reason from message text (expecting "/reject_12345 reason")
+        parts = message.text.split('_', maxsplit=2)
+        if len(parts) < 2:
+            await message.answer("⚠️ Неверный формат команды. Используйте /reject_12345 причина")
+            return
+            
         user_id = int(parts[1])
         reason = parts[2] if len(parts) > 2 else (
             "Причина не указана" if message.from_user.language_code == "ru" else
