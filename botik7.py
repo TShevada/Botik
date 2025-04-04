@@ -281,11 +281,12 @@ async def handle_back(message: types.Message):
 
 @dp.message(F.text)
 async def handle_text_messages(message: types.Message):
-    # Check if user is in the middle of a process
-    if message.from_user.id in user_data and user_data[message.from_user.id].get("step") in ["name", "phone", "confirm"]:
-        # Let the specific handlers deal with these cases
-        return
-        
+    # Check if user is in the middle of a ticket purchase process
+    if message.from_user.id in user_data:
+        current_step = user_data[message.from_user.id].get("step")
+        if current_step in ["name", "phone", "confirm"]:
+            return  # Let the specific handlers deal with these cases
+    
     lang = user_lang.get(message.from_user.id, "en")
     
     # Check if this is a ticket type selection
@@ -313,27 +314,40 @@ async def handle_text_messages(message: types.Message):
             reply_markup=types.ReplyKeyboardRemove()
         )
     else:
-        # Not a ticket selection, check if it's a menu item
-        if message.text in ["📅 Ближайшие события", "📅 Yaxın tədbirlər", "📅 Upcoming events"]:
-            await message.answer(
-                "Ближайшие события будут здесь" if lang == "ru" else
-                "Yaxın tədbirlər burada olacaq" if lang == "az" else
-                "Upcoming events will be here"
-            )
-        elif message.text in ["📞 Контакты", "📞 Əlaqə", "📞 Contacts"]:
-            await message.answer(
-                "Контакты: @username" if lang == "ru" else
-                "Əlaqə: @username" if lang == "az" else
-                "Contacts: @username"
-            )
-        elif message.text in ["🌐 Сменить язык", "🌐 Dil dəyiş", "🌐 Change language"]:
-            await message.answer(
-                "Выберите язык:" if lang == "ru" else
-                "Dil seçin:" if lang == "az" else
-                "Select language:",
-                reply_markup=get_lang_keyboard()
-            )
+        # Handle other text messages
+        await handle_other_messages(message, lang)
 
+async def handle_other_messages(message: types.Message, lang: str):
+    if message.text in ["📅 Ближайшие события", "📅 Yaxın tədbirlər", "📅 Upcoming events"]:
+        await message.answer(
+            "Ближайшие события будут здесь" if lang == "ru" else
+            "Yaxın tədbirlər burada olacaq" if lang == "az" else
+            "Upcoming events will be here"
+        )
+    elif message.text in ["📞 Контакты", "📞 Əlaqə", "📞 Contacts"]:
+        await message.answer(
+            "Контакты: @username" if lang == "ru" else
+            "Əlaqə: @username" if lang == "az" else
+            "Contacts: @username"
+        )
+    elif message.text in ["🌐 Сменить язык", "🌐 Dil dəyiş", "🌐 Change language"]:
+        await message.answer(
+            "Выберите язык:" if lang == "ru" else
+            "Dil seçin:" if lang == "az" else
+            "Select language:",
+            reply_markup=get_lang_keyboard()
+        )
+    else:
+        # If we get here, the message wasn't handled by any previous condition
+        if message.from_user.id in user_data and user_data[message.from_user.id].get("step") == "name":
+            # This should have been handled by get_name handler
+            await get_name(message)
+        else:
+            await message.answer(
+                "Неизвестная команда" if lang == "ru" else
+                "Naməlum əmr" if lang == "az" else
+                "Unknown command"
+            )
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
 async def get_name(message: types.Message):
     if not message.text or len(message.text) < 2:
