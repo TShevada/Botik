@@ -375,7 +375,7 @@ async def handle_payment_photo(message: types.Message):
             "date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "ticket_id": ticket_id,
             "username": message.from_user.username or "N/A"
-            )
+        }
         
         # Notify admin
         ticket_name = TICKET_TYPES[pending_approvals[message.from_user.id]["ticket_type"]]["ru"]["name"]
