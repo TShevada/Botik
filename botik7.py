@@ -20,7 +20,7 @@ from aiogram.types import (
 TOKEN = os.getenv("BOT_TOKEN")
 YOUR_TELEGRAM_ID = 1291104906
 PAYMENT_CARD = "4169 7388 9268 3164"
-WELCOME_BANNER = "welcome.jpg"  # Make sure this file exists in your project
+WELCOME_BANNER = "welcome.jpg"
 # ========================
 
 # Setup
@@ -41,6 +41,122 @@ ticket_codes = {}
 orders = []
 statistics = defaultdict(int)
 
+# Helper Functions
+def generate_ticket_id():
+    """Generate a unique 8-character ticket ID with prefix"""
+    prefix = random.choice(['VIP', 'STD', 'EXT'])
+    chars = string.ascii_uppercase + string.digits
+    suffix = ''.join(random.choices(chars, k=5))
+    return f"{prefix}-{suffix}"
+
+def get_admin_keyboard():
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📊 Statistics", callback_data="stats")],
+        [InlineKeyboardButton(text="📝 Recent Orders", callback_data="orders")],
+        [InlineKeyboardButton(text="⏳ Pending Approvals", callback_data="pending")]
+    ])
+
+# ===== ADMIN HANDLERS =====
+@dp.message(Command("admin"))
+async def admin_command(message: types.Message):
+    if message.from_user.id != YOUR_TELEGRAM_ID:
+        await message.answer("You are not authorized to use this command")
+        return
+    
+    await message.answer(
+        "Admin Panel:",
+        reply_markup=get_admin_keyboard()
+    )
+
+@dp.callback_query(F.data == "stats")
+async def show_stats(callback: types.CallbackQuery):
+    stats_text = (
+        f"📊 <b>Statistics</b>\n\n"
+        f"Standard Tickets: {statistics.get('standard', 0)}\n"
+        f"VIP Single Tickets: {statistics.get('vip_single', 0)}\n"
+        f"VIP Table Tickets: {statistics.get('vip_table', 0)}\n"
+        f"Exclusive Table Tickets: {statistics.get('exclusive_table', 0)}\n"
+        f"Total Revenue: {sum(int(t['price'].split()[0]) for t in orders if t.get('status') == 'approved')} AZN"
+    )
+    await callback.message.edit_text(stats_text, reply_markup=get_admin_keyboard())
+
+@dp.callback_query(F.data == "orders")
+async def show_recent_orders(callback: types.CallbackQuery):
+    recent = "\n".join(
+        f"{o['date'].strftime('%Y-%m-%d')}: {o['name']} - {o['ticket_type']} ({o['price']})"
+        for o in sorted(orders[-5:], key=lambda x: x['date'], reverse=True)
+    )
+    await callback.message.edit_text(
+        f"📝 <b>Recent Orders</b>\n\n{recent}" if recent else "No orders yet",
+        reply_markup=get_admin_keyboard()
+    )
+
+@dp.callback_query(F.data == "pending")
+async def show_pending(callback: types.CallbackQuery):
+    pending = [o for o in orders if o.get('status') == 'pending']
+    if pending:
+        text = "⏳ <b>Pending Approvals</b>\n\n" + "\n".join(
+            f"{o['name']} - {o['ticket_type']} (ID: {o['user_id']})"
+            for o in pending
+        )
+    else:
+        text = "No pending approvals"
+    await callback.message.edit_text(text, reply_markup=get_admin_keyboard())
+
+# ===== TICKET PURCHASE FLOW =====
+@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
+async def process_payment(message: types.Message):
+    user_id = message.from_user.id
+    try:
+        # Generate unique ticket ID
+        ticket_id = generate_ticket_id()
+        while ticket_id in ticket_codes.values():
+            ticket_id = generate_ticket_id()
+            
+        ticket_codes[user_id] = ticket_id
+        lang = user_data[user_id]["lang"]
+        
+        # Create order
+        order = {
+            "user_id": user_id,
+            "name": user_data[user_id]["name"],
+            "phone": user_data[user_id]["phone"],
+            "ticket_type": user_data[user_id]["ticket_type"],
+            "price": user_data[user_id]["price"],
+            "ticket_id": ticket_id,
+            "date": datetime.now(),
+            "status": "pending"
+        }
+        orders.append(order)
+        statistics[user_data[user_id]["ticket_type"]] += 1
+
+        # Notify admin
+        await notify_admin(
+            user_id=user_id,
+            name=user_data[user_id]["name"],
+            phone=user_data[user_id]["phone"],
+            ticket_type=user_data[user_id]["ticket_type"]
+        )
+
+        # Confirm to user
+        await message.answer(
+            f"✅ <b>Заявка принята!</b>\nВаш ID билета: <code>{ticket_id}</code>" if lang == "ru" else
+            f"✅ <b>Müraciət qəbul edildi!</b>\nBilet ID-niz: <code>{ticket_id}</code>" if lang == "az" else
+            f"✅ <b>Request accepted!</b>\nYour ticket ID: <code>{ticket_id}</code>",
+            reply_markup=get_menu_keyboard(lang)
+        )
+
+        del user_data[user_id]
+
+    except Exception as e:
+        logger.error(f"Payment processing error: {e}")
+        lang = user_lang.get(user_id, "en")
+        await message.answer(
+            "Ошибка обработки платежа" if lang == "ru" else
+            "Ödənişin emalı zamanı xəta" if lang == "az" else
+            "Payment processing error",
+            reply_markup=get_menu_keyboard(lang)
+        )
 # Ticket Types
 TICKET_TYPES = {
     "standard": {
@@ -105,32 +221,24 @@ def get_ticket_type_keyboard(lang):
     
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
 
-def get_admin_keyboard():
-    return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
-        [InlineKeyboardButton(text="📝 Последние заявки", callback_data="admin_orders")],
-        [InlineKeyboardButton(text="⏳ Ожидающие", callback_data="admin_pending")]
-    ])
-
 async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str):
     try:
         ticket_name = TICKET_TYPES[ticket_type]["ru"]["name"]
         await bot.send_message(
             YOUR_TELEGRAM_ID,
-            f"🆕 Новая заявка:\n\n"
-            f"👤 ID: {user_id}\n"
-            f"📛 Имя: {name}\n"
-            f"📱 Телефон: {phone}\n"
-            f"🎫 Тип: {ticket_name}\n\n"
-            f"Ответьте:\n"
+            f"<b>🆕 Новая заявка:</b>\n\n"
+            f"👤 <b>ID:</b> {user_id}\n"
+            f"📛 <b>Имя:</b> {name}\n"
+            f"📱 <b>Телефон:</b> {phone}\n"
+            f"🎫 <b>Тип:</b> {ticket_name}\n\n"
+            f"<b>Ответьте:</b>\n"
             f"/accept_{user_id} - подтвердить\n"
             f"/reject_{user_id} - отклонить"
         )
     except Exception as e:
         logger.error(f"Admin notify error: {e}")
 
-# ================= HANDLERS =================
-
+# ===== HANDLERS =====
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
     try:
@@ -161,18 +269,18 @@ async def set_language(message: types.Message):
 async def events_handler(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     events_info = {
-        "ru": "Текущий ивент: Afro-Party в Voodoo!\n"
-              "📅 Дата: 27 апреля 2025\n"
-              "🕒 Время: 18:00 - 00:00\n"
-              "📍 Место: Рестобар Voodoo, ТРЦ Наргиз Молл, 3 этаж",
-        "az": "Cari tədbir: Afro-Party Voodoo-da!\n"
-              "📅 Tarix: 27 Aprel 2025\n"
-              "🕒 Vaxt: 18:00 - 00:00\n"
-              "📍 Yer: Voodoo Restobar, Nargiz Mall, 3-cü mərtəbə",
-        "en": "Current event: Afro-Party at Voodoo!\n"
-              "📅 Date: April 27, 2025\n"
-              "🕒 Time: 6:00 PM - 12:00 AM\n"
-              "📍 Location: Voodoo Restobar, Nargiz Mall, 3rd floor"
+        "ru": "<b>Текущий ивент: Afro-Party в Voodoo!</b>\n\n"
+              "📅 <b>Дата:</b> 27 апреля 2025\n"
+              "🕒 <b>Время:</b> 18:00 - 00:00\n"
+              "📍 <b>Место:</b> Рестобар Voodoo, ТРЦ Наргиз Молл, 3 этаж",
+        "az": "<b>Cari tədbir: Afro-Party Voodoo-da!</b>\n\n"
+              "📅 <b>Tarix:</b> 27 Aprel 2025\n"
+              "🕒 <b>Vaxt:</b> 18:00 - 00:00\n"
+              "📍 <b>Yer:</b> Voodoo Restobar, Nargiz Mall, 3-cü mərtəbə",
+        "en": "<b>Current event: Afro-Party at Voodoo!</b>\n\n"
+              "📅 <b>Date:</b> April 27, 2025\n"
+              "🕒 <b>Time:</b> 6:00 PM - 12:00 AM\n"
+              "📍 <b>Location:</b> Voodoo Restobar, Nargiz Mall, 3rd floor"
     }[lang]
     await message.answer(events_info, reply_markup=get_menu_keyboard(lang))
 
@@ -180,9 +288,9 @@ async def events_handler(message: types.Message):
 async def contacts_handler(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     contact_info = {
-        "ru": "📞 Контакты:\nТелефон: +994 10 531 24 06",
-        "az": "📞 Əlaqə:\nTelefon: +994 10 531 24 06",
-        "en": "📞 Contacts:\nPhone: +994 10 531 24 06"
+        "ru": "<b>📞 Контакты:</b>\nТелефон: +994 10 531 24 06",
+        "az": "<b>📞 Əlaqə:</b>\nTelefon: +994 10 531 24 06",
+        "en": "<b>📞 Contacts:</b>\nPhone: +994 10 531 24 06"
     }[lang]
     await message.answer(contact_info, reply_markup=get_menu_keyboard(lang))
 
@@ -202,6 +310,7 @@ async def tickets_menu(message: types.Message):
         "Select ticket type:",
         reply_markup=get_ticket_type_keyboard(lang)
     )
+
 @dp.message(F.text.regexp(r"(Стандарт|Standart|Standard|VIP.*|Exclusive.*)"))
 async def select_ticket(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
@@ -236,19 +345,7 @@ async def select_ticket(message: types.Message):
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "name")
 async def get_name(message: types.Message):
     try:
-        # First check if we have text content
-        if not message.text:
-            lang = user_data.get(message.from_user.id, {}).get("lang", "en")
-            error_msg = {
-                "ru": "Пожалуйста, введите текст",
-                "az": "Zəhmət olmasa, mətn daxil edin",
-                "en": "Please enter text"
-            }[lang]
-            await message.answer(error_msg)
-            return
-
-        # Then validate name input (at least 2 words for name+surname)
-        if len(message.text.split()) < 2:
+        if not message.text or len(message.text.split()) < 2:
             lang = user_data[message.from_user.id].get("lang", "en")
             error_msg = {
                 "ru": "Пожалуйста, введите имя и фамилию",
@@ -258,18 +355,15 @@ async def get_name(message: types.Message):
             await message.answer(error_msg)
             return
 
-        # Store the name and move to next step
         user_data[message.from_user.id]["name"] = message.text
         user_data[message.from_user.id]["step"] = "phone"
-        lang = user_data[message.from_user.id].get("lang", "en")
+        lang = user_data[message.from_user.id]["lang"]
         
-        prompt = {
-            "ru": "Теперь введите ваш номер телефона:",
-            "az": "İndi telefon nömrənizi daxil edin:",
-            "en": "Now please enter your phone number:"
-        }[lang]
-        
-        await message.answer(prompt)
+        await message.answer(
+            "Теперь введите ваш номер телефона:" if lang == "ru" else
+            "İndi telefon nömrənizi daxil edin:" if lang == "az" else
+            "Now please enter your phone number:"
+        )
         
     except Exception as e:
         logger.error(f"Error in get_name handler: {e}")
@@ -282,150 +376,37 @@ async def get_name(message: types.Message):
         await message.answer(error_msg, reply_markup=get_menu_keyboard(lang))
         if message.from_user.id in user_data:
             del user_data[message.from_user.id]
-    await message.answer(
-        f"Оплатите {user_data[user_id]['price']} на карту: {PAYMENT_CARD}\n"
-        "Отправьте скриншот оплаты." if lang == "ru" else
-        f"{user_data[user_id]['price']} məbləğini {PAYMENT_CARD} kartına ödəyin.\n"
-        "Ödəniş skrinşotu göndərin." if lang == "az" else
-        f"Please pay {user_data[user_id]['price']} to card: {PAYMENT_CARD}\n"
-        "Send payment screenshot.",
-        reply_markup=get_menu_keyboard(lang)
-    )
 
-@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
-async def process_payment(message: types.Message):
-    user_id = message.from_user.id
-    if not message.photo:
-        lang = user_data[user_id]["lang"]
-        await message.answer("Please send payment screenshot")
-        return
-
+@dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "phone")
+async def get_phone(message: types.Message):
     try:
-        # Generate ticket code
-        code = generate_ticket_code()
-        ticket_codes[user_id] = code
-        
-        # Store order
-        order = {
-            "user_id": user_id,
-            "name": user_data[user_id]["name"],
-            "phone": user_data[user_id]["phone"],
-            "ticket_type": user_data[user_id]["ticket_type"],
-            "price": user_data[user_id]["price"],
-            "date": datetime.now(),
-            "status": "pending",
-            "code": code
-        }
-        orders.append(order)
-        statistics[user_data[user_id]["ticket_type"]] += 1
-
-        # Notify admin
-        await notify_admin(
-            user_id,
-            user_data[user_id]["name"],
-            user_data[user_id]["phone"],
-            user_data[user_id]["ticket_type"]
-        )
-
+        user_id = message.from_user.id
+        if not message.text:
+            raise ValueError("Empty phone number")
+            
+        user_data[user_id]["phone"] = message.text
+        user_data[user_id]["step"] = "payment"
         lang = user_data[user_id]["lang"]
+        
         await message.answer(
-            f"Заявка принята! Код: {code}" if lang == "ru" else
-            f"Müraciət qəbul edildi! Kod: {code}" if lang == "az" else
-            f"Request accepted! Code: {code}",
+            f"Оплатите {user_data[user_id]['price']} на карту: {PAYMENT_CARD}\n"
+            "Отправьте скриншот оплаты." if lang == "ru" else
+            f"{user_data[user_id]['price']} məbləğini {PAYMENT_CARD} kartına ödəyin.\n"
+            "Ödəniş skrinşotu göndərin." if lang == "az" else
+            f"Please pay {user_data[user_id]['price']} to card: {PAYMENT_CARD}\n"
+            "Send payment screenshot.",
             reply_markup=get_menu_keyboard(lang)
         )
 
-        del user_data[user_id]
-
     except Exception as e:
-        logger.error(f"Payment error: {e}")
-        await message.answer("Payment processing failed")
-
-# ================= ADMIN FUNCTIONS =================
-
-@dp.message(Command("admin"))
-async def admin_panel(message: types.Message):
-    if message.from_user.id != YOUR_TELEGRAM_ID:
-        return
-    await message.answer("Админ панель:", reply_markup=get_admin_keyboard())
-
-@dp.callback_query(F.data.startswith("admin_"))
-async def admin_actions(callback: types.CallbackQuery):
-    if callback.from_user.id != YOUR_TELEGRAM_ID:
-        return
-
-    action = callback.data.split("_")[1]
-    
-    if action == "stats":
-        stats_text = (
-            "📊 Статистика:\n"
-            f"Стандарт: {statistics.get('standard', 0)}\n"
-            f"VIP Одиночный: {statistics.get('vip_single', 0)}\n"
-            f"VIP Столик: {statistics.get('vip_table', 0)}\n"
-            f"Exclusive: {statistics.get('exclusive_table', 0)}\n"
-            f"Всего: {sum(statistics.values())}"
+        logger.error(f"Error in get_phone handler: {e}")
+        lang = user_lang.get(message.from_user.id, "en")
+        await message.answer(
+            "Неверный номер телефона, попробуйте снова" if lang == "ru" else
+            "Yanlış telefon nömrəsi, yenidən cəhd edin" if lang == "az" else
+            "Invalid phone number, please try again",
+            reply_markup=get_menu_keyboard(lang)
         )
-        await callback.message.edit_text(stats_text, reply_markup=get_admin_keyboard())
-    
-    elif action == "orders":
-        last_orders = "\n".join(
-            f"{o['name']} - {o['ticket_type']} ({o['date'].strftime('%d.%m %H:%M')})"
-            for o in orders[-5:]
-        )
-        await callback.message.edit_text(
-            f"Последние заявки:\n{last_orders}" if last_orders else "Нет заявок",
-            reply_markup=get_admin_keyboard()
-        )
-    
-    elif action == "pending":
-        pending = [o for o in orders if o["status"] == "pending"]
-        if pending:
-            text = "⏳ Ожидающие:\n" + "\n".join(
-                f"{o['name']} - {o['ticket_type']} (ID: {o['user_id']})"
-                for o in pending
-            )
-        else:
-            text = "Нет ожидающих заявок"
-        await callback.message.edit_text(text, reply_markup=get_admin_keyboard())
-
-@dp.message(F.text.regexp(r"^/(accept|reject)_\d+"))
-async def handle_admin_decision(message: types.Message):
-    if message.from_user.id != YOUR_TELEGRAM_ID:
-        return
-
-    command, user_id = message.text.split("_")
-    user_id = int(user_id)
-    action = command[1:]  # "accept" or "reject"
-
-    # Find the order
-    order = next((o for o in orders if o["user_id"] == user_id and o["status"] == "pending"), None)
-    if not order:
-        await message.answer("Заявка не найдена")
-        return
-
-    # Update status
-    order["status"] = "approved" if action == "accept" else "rejected"
-
-    # Notify user
-    lang = user_lang.get(user_id, "en")
-    if action == "accept":
-        await bot.send_message(
-            user_id,
-            f"🎉 Ваш билет подтвержден! Код: {order['code']}" if lang == "ru" else
-            f"🎉 Biletiniz təsdiqləndi! Kod: {order['code']}" if lang == "az" else
-            f"🎉 Your ticket is approved! Code: {order['code']}"
-        )
-        await message.answer(f"Заявка {user_id} подтверждена")
-    else:
-        await bot.send_message(
-            user_id,
-            "❌ Ваша заявка отклонена" if lang == "ru" else
-            "❌ Müraciətiniz rədd edildi" if lang == "az" else
-            "❌ Your request was rejected"
-        )
-        await message.answer(f"Заявка {user_id} отклонена")
-
-
 
 async def main():
     await dp.start_polling(bot)
