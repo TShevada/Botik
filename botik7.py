@@ -6,10 +6,9 @@ import random
 import string
 from datetime import datetime
 from aiogram import Bot, Dispatcher, types
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
-from aiogram.utils import executor
+from aiogram.filters import Command
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from aiogram.enums import ParseMode
 from collections import defaultdict
 from aiohttp import web
 
@@ -29,16 +28,16 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 os.makedirs(PHOTOS_DIR, exist_ok=True)
 
-bot = Bot(token=TOKEN, parse_mode=types.ParseMode.MARKDOWN)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
 # Storage
 user_lang = {}
 user_data = {}
 save_counter = defaultdict(int)
 admin_pending_actions = {}
 pending_approvals = {}
-ticket_codes = {}  # Stores generated ticket codes
+ticket_codes = {} 
 
 # Ticket Prices - Updated structure
 TICKET_TYPES = {
@@ -987,27 +986,22 @@ async def run_bot():
 
 async def http_handler(request):
     return web.Response(text="🤖 Бот работает в режиме polling!")
+async def on_startup():
+    await bot.send_message(YOUR_TELEGRAM_ID, "🤖 Bot started successfully!")
 
 async def main():
-    # Start bot in background
-    bot_task = asyncio.create_task(run_bot())
+    # Start the bot
+    await on_startup()
+    await dp.start_polling(bot)
 
-    # Configure HTTP server
+    # If you need the web server (optional):
     app = web.Application()
-    app.router.add_get("/", http_handler)
+    app.router.add_get("/", lambda request: web.Response(text="Bot is running"))
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
-
-    logger.info(f"🚀 Бот запущен на порту {PORT}")
-    await asyncio.Event().wait()
-
-async def on_startup(dp):
-    # This will be called when the bot starts
-    await bot.send_message(YOUR_TELEGRAM_ID, "🤖 Bot started successfully!")
+    logger.info(f"Server started on port {PORT}")
 
 if __name__ == '__main__':
-    # Start the bot
-    from aiogram import executor
-    executor.start_polling(dp, on_startup=on_startup, skip_updates=True)
+    asyncio.run(main())
