@@ -9,7 +9,7 @@ from typing import Dict, Any
 
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
-from aiogram.client.default import DefaultBotProperties
+from aiogram.client.default import DefaultBotProperties  # (Correct for aiogram 3.x)
 from aiogram.filters import Command, CommandObject
 from aiogram.types import (
     InlineKeyboardButton, 
