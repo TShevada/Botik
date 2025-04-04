@@ -193,7 +193,6 @@ async def tickets_menu_handler(message: types.Message):
         "Bilet növünü seçin:" if lang == "az" else 
         "Select ticket type:",
         reply_markup=get_ticket_type_keyboard(lang))
-    )
 
 @dp.message(F.text)
 async def handle_text_messages(message: types.Message):
