@@ -14,6 +14,7 @@ from aiogram.types import (
 )
 from collections import defaultdict
 import logging
+import asyncio
 # ===== CONFIGURATION =====
 TOKEN = os.getenv("BOT_TOKEN")
 
