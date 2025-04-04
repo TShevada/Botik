@@ -165,7 +165,6 @@ TICKET_TYPES = {
 }
 
 # Handlers
-
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
     await message.answer("Выберите язык / Select language / Dil seçin:", reply_markup=get_lang_keyboard())
@@ -193,8 +192,18 @@ async def tickets_menu_handler(message: types.Message):
         "Bilet növünü seçin:" if lang == "az" else 
         "Select ticket type:",
         reply_markup=get_ticket_type_keyboard(lang))
+    )
 
-@dp.message(F.text)
+@dp.message(F.text.in_(["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]))
+async def handle_back(message: types.Message):
+    lang = user_lang.get(message.from_user.id, "en")
+    await message.answer(
+        "Главное меню" if lang == "ru" else
+        "Əsas menyu" if lang == "az" else
+        "Main menu",
+        reply_markup=get_menu_keyboard(lang)
+    )
+
 @dp.message(F.text)
 async def handle_text_messages(message: types.Message):
     # First check if we're in the middle of a ticket purchase
@@ -212,9 +221,8 @@ async def handle_text_messages(message: types.Message):
     
     lang = user_lang.get(message.from_user.id, "en")
     
-    
-    # Check ticket type selection
-     selected_ticket = None
+    # Check for ticket type selection
+    selected_ticket = None
     for ticket_type, data in TICKET_TYPES.items():
         if message.text == data[lang]["name"]:
             selected_ticket = ticket_type
@@ -224,32 +232,6 @@ async def handle_text_messages(message: types.Message):
         await process_ticket_selection(message, selected_ticket, lang)
     else:
         await handle_other_commands(message, lang)
-            
-    
-    if selected_ticket:
-        await process_ticket_selection(message, selected_ticket, lang)
-    elif message.text in ["📅 Ближайшие события", "📅 Yaxın tədbirlər", "📅 Upcoming events"]:
-        await message.answer(
-            "Ближайшие события будут здесь" if lang == "ru" else
-            "Yaxın tədbirlər burada olacaq" if lang == "az" else
-            "Upcoming events will be here"
-        )
-    elif message.text in ["📞 Контакты", "📞 Əlaqə", "📞 Contacts"]:
-        await message.answer(
-            "Контакты: @username" if lang == "ru" else
-            "Əlaqə: @username" if lang == "az" else
-            "Contacts: @username"
-        )
-    elif message.text in ["🌐 Сменить язык", "🌐 Dil dəyiş", "🌐 Change language"]:
-        await message.answer(
-            "Выберите язык:" if lang == "ru" else
-            "Dil seçin:" if lang == "az" else
-            "Select language:",
-            reply_markup=get_lang_keyboard())
-        
-    elif message.text in ["⬅️ Назад", "⬅️ Geri", "⬅️ Back"]:
-        await handle_back(message)
-
 
 async def process_ticket_selection(message: types.Message, ticket_type: str, lang: str):
     """Handle ticket type selection"""
@@ -291,6 +273,7 @@ async def process_name_input(message: types.Message):
     )
 
 async def process_phone_input(message: types.Message):
+    """Process phone number input"""
     lang = user_data[message.from_user.id].get("lang", "en")
     phone = ''.join(c for c in message.text if c.isdigit() or c == '+')
     
@@ -317,6 +300,34 @@ async def process_phone_input(message: types.Message):
         )
     )
 
+async def handle_other_commands(message: types.Message, lang: str):
+    """Handle other text commands"""
+    if message.text in ["📅 Ближайшие события", "📅 Yaxın tədbirlər", "📅 Upcoming events"]:
+        await message.answer(
+            "Ближайшие события будут здесь" if lang == "ru" else
+            "Yaxın tədbirlər burada olacaq" if lang == "az" else
+            "Upcoming events will be here"
+        )
+    elif message.text in ["📞 Контакты", "📞 Əlaqə", "📞 Contacts"]:
+        await message.answer(
+            "Контакты: @username" if lang == "ru" else
+            "Əlaqə: @username" if lang == "az" else
+            "Contacts: @username"
+        )
+    elif message.text in ["🌐 Сменить язык", "🌐 Dil dəyiş", "🌐 Change language"]:
+        await message.answer(
+            "Выберите язык:" if lang == "ru" else
+            "Dil seçin:" if lang == "az" else
+            "Select language:",
+            reply_markup=get_lang_keyboard())
+        )
+    else:
+        await message.answer(
+            "Неизвестная команда" if lang == "ru" else
+            "Naməlum əmr" if lang == "az" else
+            "Unknown command"
+        )
+
 @dp.message(F.text.in_(["✅ Да", "✅ Bəli", "✅ Yes"]))
 async def confirm_purchase(message: types.Message):
     if message.from_user.id not in user_data:
@@ -325,8 +336,7 @@ async def confirm_purchase(message: types.Message):
             "Нет активной заявки" if lang == "ru" else
             "Aktiv müraciət yoxdur" if lang == "az" else
             "No active application",
-            reply_markup=get_menu_keyboard(lang)
-        )
+            reply_markup=get_menu_keyboard(lang))
         return
     
     lang = user_data[message.from_user.id].get("lang", "en")
@@ -336,7 +346,7 @@ async def confirm_purchase(message: types.Message):
         f"Оплатите {user_data[message.from_user.id]['ticket_price']} на карту: `{PAYMENT_CARD}`\n"
         "и отправьте скриншот оплаты.\n\n"
         f"{TICKET_TYPES[user_data[message.from_user.id]['ticket_type']][lang]['note']}",
-        reply_markup=get_menu_keyboard(lang)
+        reply_markup=get_menu_keyboard(lang))
     )
 
 @dp.message(F.text.in_(["❌ Нет", "❌ Xeyr", "❌ No"]))
@@ -348,7 +358,7 @@ async def cancel_purchase(message: types.Message):
             "Покупка отменена" if lang == "ru" else
             "Alış etmək ləğv edildi" if lang == "az" else
             "Purchase canceled",
-            reply_markup=get_menu_keyboard(lang)
+            reply_markup=get_menu_keyboard(lang))
         )
 
 @dp.message(F.photo, lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
@@ -388,7 +398,7 @@ async def handle_payment_photo(message: types.Message):
             f"✅ Спасибо! Заявка #{ticket_id} на рассмотрении" if lang == "ru" else
             f"✅ Təşəkkürlər! {ticket_id} nömrəli müraciətiniz nəzərdən keçirilir" if lang == "az" else
             f"✅ Thank you! Application #{ticket_id} is under review",
-            reply_markup=get_menu_keyboard(lang)
+            reply_markup=get_menu_keyboard(lang))
         )
         del user_data[message.from_user.id]
     except Exception as e:
@@ -457,7 +467,6 @@ async def show_approved(message: types.Message):
             )
     
     await message.answer(text)
-
 
 @dp.message(Command("approve"))
 async def approve_handler(message: types.Message):
@@ -556,6 +565,7 @@ async def reject_handler(message: types.Message):
         logger.error(f"Reject error: {e}")
         await message.answer("⚠️ Ошибка команды. Формат: /reject_12345 причина")
 
+# Required for Render port binding
 async def web_app():
     app = web.Application()
     app.router.add_get("/", lambda request: web.Response(text="Bot is running"))
