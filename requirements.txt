@@ -1,3 +1,3 @@
-aiogram==3.0.0b7
-aiohttp~=3.8.4  # Matches aiogram's dependency
+aiogram>=3.0.0b7  # or aiogram==3.1.1 (latest stable)
+aiohttp~=3.8.4   # Required for aiogram 3.x
 python-dotenv==1.0.0
