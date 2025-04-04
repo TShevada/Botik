@@ -1,42 +1,44 @@
 import os
+import logging
+import asyncio
 import random
 import string
 from datetime import datetime
+from collections import defaultdict
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import (
-    ReplyKeyboardMarkup, 
+    ReplyKeyboardMarkup,
     KeyboardButton,
     ReplyKeyboardRemove,
     InlineKeyboardMarkup,
     InlineKeyboardButton
 )
-from collections import defaultdict
-import logging
-import asyncio
+
 # ===== CONFIGURATION =====
 TOKEN = os.getenv("BOT_TOKEN")
-
-if not TOKEN:
-    raise RuntimeError("BOT_TOKEN environment variable is missing!")
 YOUR_TELEGRAM_ID = 1291104906
 PAYMENT_CARD = "4169 7388 9268 3164"
 # ========================
 
 # Setup
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
-bot = Bot(token=TOKEN, parse_mode=ParseMode.MARKDOWN_V2)
+bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)  # Using HTML by default
 dp = Dispatcher()
 
-# Storage (in production use Redis/DB)
+# Storage
 user_lang = {}
 user_data = {}
-orders = []  
+pending_approvals = {}
+ticket_codes = {}
+orders = []
 statistics = defaultdict(int)
-
 # Ticket Types
 TICKET_TYPES = {
     "standard": {
@@ -73,14 +75,23 @@ def get_lang_keyboard():
         ],
         resize_keyboard=True
     )
+def get_lang_keyboard():
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [KeyboardButton(text="🇷🇺 Русский"), KeyboardButton(text="🇦🇿 Azərbaycan")],
+            [KeyboardButton(text="🇬🇧 English")]
+        ],
+        resize_keyboard=True
+    )
 
 def get_menu_keyboard(lang):
+    text = {
+        "ru": "🎫 Билеты",
+        "az": "🎫 Biletlər",
+        "en": "🎫 Tickets"
+    }.get(lang, "🎫 Tickets")
     return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(
-            text="🎫 Билеты" if lang == "ru" else 
-            "🎫 Biletlər" if lang == "az" else 
-            "🎫 Tickets"
-        )]],
+        keyboard=[[KeyboardButton(text=text)]],
         resize_keyboard=True
     )
 
@@ -91,10 +102,15 @@ def get_ticket_type_keyboard(lang):
         price = names[lang]["price"]
         buttons.append([KeyboardButton(text=f"{name} ({price})")])
     
-    back_text = "⬅️ Назад" if lang == "ru" else "⬅️ Geri" if lang == "az" else "⬅️ Back"
+    back_text = {
+        "ru": "⬅️ Назад",
+        "az": "⬅️ Geri",
+        "en": "⬅️ Back"
+    }.get(lang, "⬅️ Back")
     buttons.append([KeyboardButton(text=back_text)])
     
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True)
+
 
 def get_admin_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[
@@ -104,36 +120,28 @@ def get_admin_keyboard():
     ])
 
 async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str):
-    ticket_name = TICKET_TYPES[ticket_type]["ru"]["name"]
-    await bot.send_message(
-        YOUR_TELEGRAM_ID,
-        f"🆕 Новая заявка:\n\n"
-        f"👤 ID: {user_id}\n"
-        f"📛 Имя: {name}\n"
-        f"📱 Телефон: {phone}\n"
-        f"🎫 Тип: {ticket_name}\n\n"
-        f"Ответьте:\n"
-        f"/accept_{user_id} - подтвердить\n"
-        f"/reject_{user_id} - отклонить",
-        parse_mode=ParseMode.MARKDOWN_V2
-    )
+    try:
+        ticket_name = TICKET_TYPES[ticket_type]["ru"]["name"]
+        await bot.send_message(
+            YOUR_TELEGRAM_ID,
+            f"<b>🆕 Новая заявка:</b>\n\n"
+            f"👤 <b>ID:</b> {user_id}\n"
+            f"📛 <b>Имя:</b> {name}\n"
+            f"📱 <b>Телефон:</b> {phone}\n"
+            f"🎫 <b>Тип:</b> {ticket_name}\n\n"
+            f"<b>Ответьте:</b>\n"
+            f"/accept_{user_id} - подтвердить\n"
+            f"/reject_{user_id} - отклонить"
+        )
+    except Exception as e:
+        logger.error(f"Admin notify error: {e}")
 # ================= HANDLERS =================
-
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
     user_lang[message.from_user.id] = "ru"
     await message.answer(
-        "Добро пожаловать! Выберите действие:",
+        "<b>Добро пожаловать!</b> Выберите действие:",
         reply_markup=get_menu_keyboard("ru")
-    )
-    
-    # Set default language to Russian
-    user_lang[message.from_user.id] = "ru"  # Change to "az" or "en" if you prefer
-    
-    # Show main menu immediately
-    await message.answer(
-        "Добро пожаловать! Выберите действие:",  # "Welcome! Choose action:"
-        reply_markup=get_menu_keyboard("ru")     # Using default language
     )
 
 @dp.message(F.text.in_(["🇷🇺 Русский", "🇦🇿 Azərbaycan", "🇬🇧 English"]))
@@ -146,9 +154,9 @@ async def set_language(message: types.Message):
     user_lang[message.from_user.id] = lang_map[message.text]
     
     confirmation = {
-        "ru": "Язык установлен. Выберите действие:",
-        "az": "Dil seçildi. Əməliyyat seçin:",
-        "en": "Language set. Please choose:"
+        "ru": "<b>Язык установлен.</b> Выберите действие:",
+        "az": "<b>Dil seçildi.</b> Əməliyyat seçin:",
+        "en": "<b>Language set.</b> Please choose:"
     }[lang_map[message.text]]
     
     await message.answer(confirmation, reply_markup=get_menu_keyboard(lang_map[message.text]))
@@ -157,12 +165,11 @@ async def set_language(message: types.Message):
 async def tickets_menu(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
     await message.answer(
-        "Выберите тип билета:" if lang == "ru" else
-        "Bilet növünü seçin:" if lang == "az" else
-        "Select ticket type:",
+        "<b>Выберите тип билета:</b>" if lang == "ru" else
+        "<b>Bilet növünü seçin:</b>" if lang == "az" else
+        "<b>Select ticket type:</b>",
         reply_markup=get_ticket_type_keyboard(lang)
     )
-
 @dp.message(F.text.regexp(r"(Стандарт|Standart|Standard|VIP.*|Exclusive.*)"))
 async def select_ticket(message: types.Message):
     lang = user_lang.get(message.from_user.id, "en")
@@ -391,5 +398,5 @@ async def handle_admin_decision(message: types.Message):
 async def main():
     await dp.start_polling(bot)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())
