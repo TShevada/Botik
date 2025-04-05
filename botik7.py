@@ -3,9 +3,11 @@ import logging
 import asyncio
 import random
 import string
+from aiohttp import web
 from datetime import datetime
 from collections import defaultdict
 from aiogram import Bot, Dispatcher, types, F
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler
 from aiogram.enums import ParseMode
 from aiogram.filters import Command
 from aiogram.types import (
@@ -17,21 +19,21 @@ from aiogram.types import (
 )
 
 # ===== CONFIGURATION =====
-TOKEN = os.getenv("BOT_TOKEN")
-YOUR_TELEGRAM_ID = 1291104906
-PAYMENT_CARD = "4169 7388 9268 3164"
-WELCOME_BANNER = "welcome.jpg"
+TOKEN = "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y"
+WEB_SERVER_HOST = "0.0.0.0"  # Render requires this
+WEB_SERVER_PORT = int(os.getenv("PORT", 8000))  # Render provides PORT
 # ========================
+WEBHOOK_PATH = f"/webhook/{TOKEN}"
+WEBHOOK_URL = f"https://botik.onrender.com{WEBHOOK_PATH}"
 
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
 # Setup
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
-dp = Dispatcher()
 
 # Storage
 user_lang = {}
@@ -408,8 +410,28 @@ async def get_phone(message: types.Message):
             reply_markup=get_menu_keyboard(lang)
         )
 
+async def on_startup(app: web.Application):
+    await bot.set_webhook(WEBHOOK_URL)
+
 async def main():
-    await dp.start_polling(bot)
+    app = web.Application()
+    app.on_startup.append(on_startup)
+    
+    # Register webhook handler
+    webhook_requests_handler = SimpleRequestHandler(
+        dispatcher=dp,
+        bot=bot,
+    )
+    webhook_requests_handler.register(app, path=WEBHOOK_PATH)
+    
+    # Start web server
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, WEB_SERVER_HOST, WEB_SERVER_PORT)
+    await site.start()
+    
+    # Run forever
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
     asyncio.run(main())
