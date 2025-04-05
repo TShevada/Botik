@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: botik  # Must match your Render service name
+    name: Botik  # Must match your Render service name
     runtime: python
     buildCommand: pip install -r requirements.txt
     startCommand: python bot.py
