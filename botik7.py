@@ -24,7 +24,7 @@ TOKEN = "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y"
 WEB_SERVER_HOST = "0.0.0.0"  # Render requires this
 WEB_SERVER_PORT = int(os.getenv("PORT", 8000))  # Render provides PORT
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
-WEBHOOK_URL = f"https://Botik.onrender.com{WEBHOOK_PATH}"  # Case-sensitive!
+WEBHOOK_URL = f"https://botik-aao9.onrender.com{WEBHOOK_PATH}"  # Case-sensitive!
 # ========================
 
 # Setup
@@ -416,11 +416,16 @@ async def health_check(request):
     return web.Response(text="🤖 Botik is healthy!")
 
 async def on_startup(app: web.Application):
-    """Set webhook on startup"""
+    # Reset any existing webhook first
+    await bot.delete_webhook(drop_pending_updates=True)
+    
+    # Set new webhook with correct case
     await bot.set_webhook(WEBHOOK_URL)
+    
+    # Verify
     webhook_info = await bot.get_webhook_info()
-    logger.info(f"Webhook set: {webhook_info.url}")
-    logger.info(f"Pending updates: {webhook_info.pending_update_count}")
+    logger.info(f"Webhook set to: {webhook_info.url}")
+    logger.info(f"Is active: {webhook_info.url == WEBHOOK_URL}")  # Should be True
 
 @dp.update()
 async def log_updates(update: Update):
