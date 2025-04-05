@@ -1,7 +1,13 @@
 services:
   - type: web
-    name: telegram-bot-polling
-    env: python
+    name: botik  # Must match your Render service name
+    runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
-    plan: free
+    startCommand: python bot.py
+    envVars:
+      - key: BOT_TOKEN
+        value: "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y"  # Your token
+      - key: ADMIN_ID
+        value: "1291104906"  # Your Telegram ID
+      - key: PORT
+        value: "8000"  # Required for Render
