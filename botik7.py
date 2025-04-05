@@ -1,6 +1,7 @@
 import os
 import logging
 import asyncio
+from aiogram.types import Update
 import random
 import string
 from aiohttp import web
@@ -22,18 +23,19 @@ from aiogram.types import (
 TOKEN = "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y"
 WEB_SERVER_HOST = "0.0.0.0"  # Render requires this
 WEB_SERVER_PORT = int(os.getenv("PORT", 8000))  # Render provides PORT
-# ========================
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
-WEBHOOK_URL = f"https://Botik.onrender.com{WEBHOOK_PATH}"
+WEBHOOK_URL = f"https://botik.onrender.com{WEBHOOK_PATH}"  # Case-sensitive!
+# ========================
 
-bot = Bot(token=TOKEN)
-dp = Dispatcher()
 # Setup
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher()
 
 # Storage
 user_lang = {}
@@ -42,7 +44,6 @@ pending_approvals = {}
 ticket_codes = {}
 orders = []
 statistics = defaultdict(int)
-
 # Helper Functions
 def generate_ticket_id():
     """Generate a unique 8-character ticket ID with prefix"""
@@ -410,27 +411,50 @@ async def get_phone(message: types.Message):
             reply_markup=get_menu_keyboard(lang)
         )
 
+async def health_check(request):
+    """Endpoint for Render health checks"""
+    return web.Response(text="🤖 Botik is healthy!")
+
 async def on_startup(app: web.Application):
+    """Set webhook on startup"""
     await bot.set_webhook(WEBHOOK_URL)
+    webhook_info = await bot.get_webhook_info()
+    logger.info(f"Webhook set: {webhook_info.url}")
+    logger.info(f"Pending updates: {webhook_info.pending_update_count}")
+
+@dp.update()
+async def log_updates(update: Update):
+    """Log all incoming updates"""
+    logger.info(f"📨 Update received: {update.update_id}")
+    return
 
 async def main():
+    """Configure and start the application"""
     app = web.Application()
-    app.on_startup.append(on_startup)
     
-    # Register webhook handler
+    # 1. Add health check first (Render requirement)
+    app.router.add_get("/", health_check)
+    
+    # 2. Register webhook handler
     webhook_requests_handler = SimpleRequestHandler(
         dispatcher=dp,
-        bot=bot,
+        bot=bot
     )
     webhook_requests_handler.register(app, path=WEBHOOK_PATH)
     
-    # Start web server
+    # 3. Add startup callback
+    app.on_startup.append(on_startup)
+    
+    # 4. Start server
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, WEB_SERVER_HOST, WEB_SERVER_PORT)
     await site.start()
     
-    # Run forever
+    logger.info(f"🚀 Server started on {WEB_SERVER_HOST}:{WEB_SERVER_PORT}")
+    logger.info(f"Webhook URL: {WEBHOOK_URL}")
+    
+    # 5. Keep running
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
