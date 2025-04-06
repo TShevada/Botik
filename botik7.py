@@ -10,7 +10,7 @@ from datetime import datetime
 from collections import defaultdict
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler
-from aiogram.enums import ParseMode
+from aiogram.enums import ParseMode    
 from aiogram.filters import Command
 from aiogram.types import (
     ReplyKeyboardMarkup,
@@ -19,12 +19,8 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton
 )
-# ===== CONFIGURATION =====
-# Безопасное получение токена из переменных окружения
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-if not TOKEN:
-    raise ValueError("Telegram bot token is not set in environment variables!")
-
+## ===== CONFIGURATION =====
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y")
 WEB_SERVER_HOST = "0.0.0.0"  # Render requires this
 WEB_SERVER_PORT = int(os.getenv("PORT", 8000))  # Render provides PORT
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
