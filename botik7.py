@@ -19,8 +19,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton
 )
-## ===== CONFIGURATION =====
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y")
+#TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y")
 WEB_SERVER_HOST = "0.0.0.0"  # Render requires this
 WEB_SERVER_PORT = int(os.getenv("PORT", 8000))  # Render provides PORT
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
@@ -33,17 +32,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-# ===== VALIDATE CONFIG =====
-def validate_config():
-    """Check critical config values."""
-    if not TOKEN:
-        raise ValueError("Telegram bot token is empty!")
-    if not WEBHOOK_DOMAIN:
-        raise ValueError("Webhook domain is not set!")
-    if not WEBHOOK_URL.startswith('https://'):
-        logger.warning("Webhook URL is not HTTPS!")
 
-validate_config()
 bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
