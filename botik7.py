@@ -4,6 +4,7 @@ import asyncio
 from aiogram.types import Update
 import random
 import string
+from typing import Optional
 from aiohttp import web
 from datetime import datetime
 from collections import defaultdict
@@ -20,20 +21,44 @@ from aiogram.types import (
 )
 
 # ===== CONFIGURATION =====
-TOKEN = "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y"
-WEB_SERVER_HOST = "0.0.0.0"  # Render requires this
-WEB_SERVER_PORT = int(os.getenv("PORT", 8000))  # Render provides PORT
-WEBHOOK_PATH = f"/webhook/{TOKEN}"
-WEBHOOK_URL = f"https://botik-aao9.onrender.com{WEBHOOK_PATH}"  # Case-sensitive!
-# ========================
+def get_env_var(name: str, default: Optional[str] = None) -> str:
+    """Get environment variable or raise error if missing."""
+    value = os.getenv(name, default)
+    if value is None:
+        raise ValueError(f"Environment variable '{name}' is not set!")
+    return value
 
-# Setup
+# --- Telegram Bot Settings ---
+TOKEN = get_env_var("TELEGRAM_BOT_TOKEN")  # Обязательная переменная
+WEB_SERVER_HOST = "0.0.0.0"  # Render requires this
+
+# PORT is provided by Render (default to 8000 if missing)
+WEB_SERVER_PORT = int(get_env_var("PORT", "8000"))  
+
+# Webhook settings (URL is constructed dynamically)
+WEBHOOK_PATH = f"/webhook/{TOKEN}"
+WEBHOOK_DOMAIN = get_env_var("WEBHOOK_DOMAIN")  # Пример: "botik-aao9.onrender.com"
+WEBHOOK_URL = f"https://{WEBHOOK_DOMAIN}{WEBHOOK_PATH}"  # Case-sensitive!
+
+# ===== LOGGING SETUP =====
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)
 
+# ===== VALIDATE CONFIG =====
+def validate_config():
+    """Check critical config values."""
+    if not TOKEN:
+        raise ValueError("Telegram bot token is empty!")
+    if not WEBHOOK_DOMAIN:
+        raise ValueError("Webhook domain is not set!")
+    if not WEBHOOK_URL.startswith('https://'):
+        logger.warning("Webhook URL is not HTTPS!")
+
+validate_config()
 bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
