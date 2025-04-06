@@ -19,35 +19,24 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton
 )
-
 # ===== CONFIGURATION =====
-def get_env_var(name: str, default: Optional[str] = None) -> str:
-    """Get environment variable or raise error if missing."""
-    value = os.getenv(name, default)
-    if value is None:
-        raise ValueError(f"Environment variable '{name}' is not set!")
-    return value
+# Безопасное получение токена из переменных окружения
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+if not TOKEN:
+    raise ValueError("Telegram bot token is not set in environment variables!")
 
-# --- Telegram Bot Settings ---
-TOKEN = get_env_var("TELEGRAM_BOT_TOKEN")  # Обязательная переменная
 WEB_SERVER_HOST = "0.0.0.0"  # Render requires this
-
-# PORT is provided by Render (default to 8000 if missing)
-WEB_SERVER_PORT = int(get_env_var("PORT", "8000"))  
-
-# Webhook settings (URL is constructed dynamically)
+WEB_SERVER_PORT = int(os.getenv("PORT", 8000))  # Render provides PORT
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
-WEBHOOK_DOMAIN = get_env_var("WEBHOOK_DOMAIN")  # Пример: "botik-aao9.onrender.com"
-WEBHOOK_URL = f"https://{WEBHOOK_DOMAIN}{WEBHOOK_PATH}"  # Case-sensitive!
+WEBHOOK_URL = f"https://botik-aao9.onrender.com{WEBHOOK_PATH}"  # Case-sensitive!
+# ========================
 
-# ===== LOGGING SETUP =====
+# Setup
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
 # ===== VALIDATE CONFIG =====
 def validate_config():
     """Check critical config values."""
