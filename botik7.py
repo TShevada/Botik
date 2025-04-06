@@ -19,7 +19,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton
 )
-#TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y")
+TOKEN = os.getenv("TOKEN", "7598421595:AAFIBwcEENiYq23qGLItJNGx6AHbAH7K17Y")
 WEB_SERVER_HOST = "0.0.0.0"  # Render requires this
 WEB_SERVER_PORT = int(os.getenv("PORT", 8000))  # Render provides PORT
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
