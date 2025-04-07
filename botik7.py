@@ -144,7 +144,7 @@ async def process_payment(message: types.Message):
         orders.append(order)
         statistics[user_data[user_id]["ticket_type"]] += 1
 
-        # Notify admin - THIS IS THE FIXED LINE
+        # Notify admin
         await notify_admin(
             user_id=user_id,
             name=user_data[user_id]["name"],
@@ -152,11 +152,11 @@ async def process_payment(message: types.Message):
             ticket_type=user_data[user_id]["ticket_type"]
         )
 
-        # Confirm to user
+        # Tell user it's pending approval
         await message.answer(
-            f"✅ <b>Заявка принята!</b>\nВаш ID билета: <code>{ticket_id}</code>" if lang == "ru" else
-            f"✅ <b>Müraciət qəbul edildi!</b>\nBilet ID-niz: <code>{ticket_id}</code>" if lang == "az" else
-            f"✅ <b>Request accepted!</b>\nYour ticket ID: <code>{ticket_id}</code>",
+            f"⏳ <b>Ваша заявка принята и ожидает проверки!</b>\nID билета: <code>{ticket_id}</code>\nМы уведомим вас после проверки." if lang == "ru" else
+            f"⏳ <b>Müraciətiniz qəbul edildi və yoxlanılır!</b>\nBilet ID: <code>{ticket_id}</code>\nYoxlandıqdan sonra sizi məlumatlandıracağıq." if lang == "az" else
+            f"⏳ <b>Your request has been received and is pending review!</b>\nTicket ID: <code>{ticket_id}</code>\nWe'll notify you after verification.",
             reply_markup=get_menu_keyboard(lang)
         )
 
@@ -249,13 +249,74 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str):
             f"📱 <b>Телефон:</b> {phone}\n"
             f"🎫 <b>Тип:</b> {ticket_name}\n"
             f"💰 <b>Цена:</b> {price}\n\n"
-            f"<b>Ответьте:</b>\n"
-            f"/accept_{user_id} - подтвердить\n"
-            f"/reject_{user_id} - отклонить",
+            f"<b>Действия:</b>\n"
+            f"Нажмите /accept_{user_id} - подтвердить\n"
+            f"Нажмите /reject_{user_id} - отклонить",
             parse_mode=ParseMode.HTML
         )
     except Exception as e:
         logger.error(f"Admin notify error: {e}")
+
+
+@dp.message(Command(commands=[f"accept_{user_id}" for user_id in user_data.keys()]))
+async def accept_order(message: types.Message):
+    try:
+        # Extract user_id from command
+        user_id = int(message.text.split('_')[1])
+        
+        # Find and update the order
+        for order in orders:
+            if order["user_id"] == user_id and order["status"] == "pending":
+                order["status"] = "approved"
+                lang = user_lang.get(user_id, "en")
+                
+                # Notify user
+                await bot.send_message(
+                    user_id,
+                    f"✅ <b>Ваша заявка одобрена!</b>\nID билета: <code>{order['ticket_id']}</code>" if lang == "ru" else
+                    f"✅ <b>Sifarişiniz təsdiqləndi!</b>\nBilet ID: <code>{order['ticket_id']}</code>" if lang == "az" else
+                    f"✅ <b>Your order has been approved!</b>\nTicket ID: <code>{order['ticket_id']}</code>"
+                )
+                
+                await message.answer(f"✅ Order {user_id} approved")
+                break
+        else:
+            await message.answer("Order not found or already processed")
+            
+    except Exception as e:
+        logger.error(f"Accept order error: {e}")
+        await message.answer("Error processing approval")
+
+@dp.message(Command(commands=[f"reject_{user_id}" for user_id in user_data.keys()]))
+async def reject_order(message: types.Message):
+    try:
+        # Extract user_id from command
+        user_id = int(message.text.split('_')[1])
+        
+        # Find and update the order
+        for order in orders:
+            if order["user_id"] == user_id and order["status"] == "pending":
+                order["status"] = "rejected"
+                lang = user_lang.get(user_id, "en")
+                
+                # Notify user
+                await bot.send_message(
+                    user_id,
+                    f"❌ <b>Ваша заявка отклонена</b>\nID билета: <code>{order['ticket_id']}</code>\nПо вопросам обращайтесь в поддержку." if lang == "ru" else
+                    f"❌ <b>Sifarişiniz rədd edildi</b>\nBilet ID: <code>{order['ticket_id']}</code>\nSuallarınız üçün dəstək xidməti ilə əlaqə saxlayın." if lang == "az" else
+                    f"❌ <b>Your order has been rejected</b>\nTicket ID: <code>{order['ticket_id']}</code>\nPlease contact support for questions."
+                )
+                
+                await message.answer(f"❌ Order {user_id} rejected")
+                break
+        else:
+            await message.answer("Order not found or already processed")
+            
+    except Exception as e:
+        logger.error(f"Reject order error: {e}")
+        await message.answer("Error processing rejection")
+
+
 # ===== HANDLERS =====
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
