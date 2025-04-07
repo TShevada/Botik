@@ -61,7 +61,7 @@ def get_admin_keyboard():
 # ===== ADMIN HANDLERS =====
 @dp.message(Command("admin"))
 async def admin_command(message: types.Message):
-    if message.from_user.id != YOUR_TELEGRAM_ID:
+    if message.from_user.id !=1291104906:
         await message.answer("You are not authorized to use this command")
         return
     
@@ -241,7 +241,7 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str):
         price = TICKET_TYPES[ticket_type]["ru"]["price"]
         
         await bot.send_message(
-            YOUR_TELEGRAM_ID,
+            1291104906,
             f"<b>🆕 Новая заявка:</b>\n\n"
             f"👤 <b>ID:</b> {user_id}\n"
             f"📛 <b>Имя:</b> {name}\n"
