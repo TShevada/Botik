@@ -258,7 +258,7 @@ async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str):
         logger.error(f"Admin notify error: {e}")
 
 
-@dp.message(Command(commands=[f"accept_{user_id}" for user_id in user_data.keys()]))
+@dp.message(Command(startswith="accept_"))
 async def accept_order(message: types.Message):
     try:
         # Extract user_id from command
@@ -287,7 +287,7 @@ async def accept_order(message: types.Message):
         logger.error(f"Accept order error: {e}")
         await message.answer("Error processing approval")
 
-@dp.message(Command(commands=[f"reject_{user_id}" for user_id in user_data.keys()]))
+@dp.message(Command(startswith="reject_"))
 async def reject_order(message: types.Message):
     try:
         # Extract user_id from command
@@ -315,8 +315,6 @@ async def reject_order(message: types.Message):
     except Exception as e:
         logger.error(f"Reject order error: {e}")
         await message.answer("Error processing rejection")
-
-
 # ===== HANDLERS =====
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
