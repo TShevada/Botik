@@ -108,6 +108,17 @@ async def show_pending(callback: types.CallbackQuery):
 # ===== TICKET PURCHASE FLOW =====
 @dp.message(lambda m: user_data.get(m.from_user.id, {}).get("step") == "payment")
 async def process_payment(message: types.Message):
+    # Check if message contains photo/document (payment proof)
+    if not (message.photo or message.document):
+        lang = user_data.get(message.from_user.id, {}).get("lang", "en")
+        await message.answer(
+            "Пожалуйста, отправьте скриншот оплаты" if lang == "ru" else
+            "Zəhmət olmasa ödəniş skrinşotu göndərin" if lang == "az" else
+            "Please send payment screenshot",
+            reply_markup=get_menu_keyboard(lang)
+        )
+        return
+
     user_id = message.from_user.id
     try:
         # Generate unique ticket ID
@@ -133,7 +144,7 @@ async def process_payment(message: types.Message):
         statistics[user_data[user_id]["ticket_type"]] += 1
 
         # Notify admin
-        await notify_admin(
+        await (
             user_id=user_id,
             name=user_data[user_id]["name"],
             phone=user_data[user_id]["phone"],
@@ -225,21 +236,25 @@ def get_ticket_type_keyboard(lang):
 
 async def notify_admin(user_id: int, name: str, phone: str, ticket_type: str):
     try:
+        # Get ticket name in Russian for admin notification
         ticket_name = TICKET_TYPES[ticket_type]["ru"]["name"]
+        price = TICKET_TYPES[ticket_type]["ru"]["price"]
+        
         await bot.send_message(
             YOUR_TELEGRAM_ID,
             f"<b>🆕 Новая заявка:</b>\n\n"
             f"👤 <b>ID:</b> {user_id}\n"
             f"📛 <b>Имя:</b> {name}\n"
             f"📱 <b>Телефон:</b> {phone}\n"
-            f"🎫 <b>Тип:</b> {ticket_name}\n\n"
+            f"🎫 <b>Тип:</b> {ticket_name}\n"
+            f"💰 <b>Цена:</b> {price}\n\n"
             f"<b>Ответьте:</b>\n"
             f"/accept_{user_id} - подтвердить\n"
-            f"/reject_{user_id} - отклонить"
+            f"/reject_{user_id} - отклонить",
+            parse_mode=ParseMode.HTML
         )
     except Exception as e:
         logger.error(f"Admin notify error: {e}")
-
 # ===== HANDLERS =====
 @dp.message(Command("start"))
 async def start_cmd(message: types.Message):
@@ -383,10 +398,13 @@ async def get_name(message: types.Message):
 async def get_phone(message: types.Message):
     try:
         user_id = message.from_user.id
-        if not message.text:
+        phone = message.text.strip()
+        
+        # Basic phone number validation (accepts any non-empty input)
+        if not phone:
             raise ValueError("Empty phone number")
             
-        user_data[user_id]["phone"] = message.text
+        user_data[user_id]["phone"] = phone
         user_data[user_id]["step"] = "payment"
         lang = user_data[user_id]["lang"]
         
@@ -409,7 +427,6 @@ async def get_phone(message: types.Message):
             "Invalid phone number, please try again",
             reply_markup=get_menu_keyboard(lang)
         )
-
 async def health_check(request):
     """Endpoint for Render health checks"""
     return web.Response(text="🤖 Botik is healthy!")
