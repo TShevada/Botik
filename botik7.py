@@ -143,8 +143,8 @@ async def process_payment(message: types.Message):
         orders.append(order)
         statistics[user_data[user_id]["ticket_type"]] += 1
 
-        # Notify admin
-        await (
+        # Notify admin - THIS IS THE FIXED LINE
+        await notify_admin(
             user_id=user_id,
             name=user_data[user_id]["name"],
             phone=user_data[user_id]["phone"],
