@@ -24,6 +24,7 @@ WEB_SERVER_HOST = "0.0.0.0"  # Render requires this
 WEB_SERVER_PORT = int(os.getenv("PORT", 8000))  # Render provides PORT
 WEBHOOK_PATH = f"/webhook/{TOKEN}"
 WEBHOOK_URL = f"https://botik-aao9.onrender.com{WEBHOOK_PATH}"  # Case-sensitive!
+PAYMENT_CARD = "4169 7388 9268 3164"
 # ========================
 
 # Setup
